@@ -1,5 +1,5 @@
 "use client";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/lp-components/Navbar";
 import HeroSection from "@/components/lp-components/HeroSection";
 import FeaturedArt from "@/components/lp-components/FeaturedArt";
 import ValueProps from "@/components/lp-components/ValueProps";
