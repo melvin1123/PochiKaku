@@ -11,6 +11,11 @@ const galleryItems = [
   { id: 3, title: "Lost City", artist: "Cara", img: "/featured/lost-city.jpg" },
   { id: 4, title: "Ocean Light", artist: "Diana", img: "/featured/ocean-light.jpg" },
   { id: 5, title: "Sketch Vibes", artist: "Evan", img: "/featured/sketch-vibes.jpg" },
+  { id: 6, title: "Waiting", artist: "Janmeru", img: "/featured/waiting.png" },
+  { id: 7, title: "HKS Character", artist: "Void", img: "/featured/download.jpg" },
+  { id: 8, title: "HKS Character", artist: "Void", img: "/featured/download (5).jpg" },
+  { id: 9, title: "Changli", artist: "John", img: "/featured/changli.jpg" },
+  { id: 10, title: "Reverse 99", artist: "Bob", img: "/featured/download (6).jpg" },
 ];
 
 export default function GalleryPage() {

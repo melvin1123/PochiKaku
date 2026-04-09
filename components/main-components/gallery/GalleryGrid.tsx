@@ -1,14 +1,21 @@
 "use client";
+import Masonry from "react-masonry-css";
 import ArtCard from "./ArtCard";
 
-interface GalleryGridProps {
-  items: { id: number; title: string; artist: string; img: string }[];
-  onSelect?: (art: any) => void;
-}
+const breakpointColumnsObj = {
+  default: 5,
+  1024: 3,
+  768: 2,
+  640: 1,
+};
 
 export default function GalleryGrid({ items, onSelect }: GalleryGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <Masonry
+      breakpointCols={breakpointColumnsObj}
+      className="flex gap-6"
+      columnClassName="space-y-6"
+    >
       {items.map((art) => (
         <ArtCard
           key={art.id}
@@ -18,6 +25,6 @@ export default function GalleryGrid({ items, onSelect }: GalleryGridProps) {
           onClick={() => onSelect?.(art)}
         />
       ))}
-    </div>
+    </Masonry>
   );
 }

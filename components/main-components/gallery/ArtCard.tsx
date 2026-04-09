@@ -14,7 +14,7 @@ export default function ArtCard({ title, artist, img, onClick }: ArtCardProps) {
       className="group relative bg-[#e8dfd3] rounded-lg overflow-hidden shadow hover:shadow-lg cursor-pointer transition transform hover:scale-105"
       onClick={onClick}
     >
-      <img src={img} alt={title} className="w-full h-48 object-cover" />
+      <img src={img} alt={title} className="object-cover" />
 
       {/* Heart Icon */}
       <div className="absolute top-2 right-2 bg-white/80 p-2 rounded-full">
