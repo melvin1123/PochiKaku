@@ -6,11 +6,11 @@ import GalleryGrid from "@/components/main-components/gallery/GalleryGrid";
 import ArtModal from "@/components/main-components/gallery/ArtModal";
 
 const galleryItems = [
-  { id: 1, title: "Sunset Dreams", artist: "Alice", img: "/art1.jpg" },
-  { id: 2, title: "City Vibes", artist: "Bob", img: "/art2.jpg" },
-  { id: 3, title: "Mystic Forest", artist: "Cara", img: "/art3.jpg" },
-  { id: 4, title: "Ocean Waves", artist: "Diana", img: "/art4.jpg" },
-  { id: 5, title: "Night Sky", artist: "Evan", img: "/art5.jpg" },
+  { id: 1, title: "Forest Dream", artist: "Alice", img: "/featured/forest-dream.jpg" },
+  { id: 2, title: "Golden Hour", artist: "Bob", img: "/featured/golden-hour.jpg" },
+  { id: 3, title: "Lost City", artist: "Cara", img: "/featured/lost-city.jpg" },
+  { id: 4, title: "Ocean Light", artist: "Diana", img: "/featured/ocean-light.jpg" },
+  { id: 5, title: "Sketch Vibes", artist: "Evan", img: "/featured/sketch-vibes.jpg" },
 ];
 
 export default function GalleryPage() {
