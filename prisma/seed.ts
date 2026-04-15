@@ -34,7 +34,7 @@ async function main() {
       email: "alice@example.com",
       username: "alice",
       password: passwordHash,
-      avatarUrl: "https://picsum.photos/seed/alice/200/200",
+      avatarUrl: "/avatar.jpg",
       bio: "Photographer and storyteller.",
     },
   });
@@ -44,7 +44,7 @@ async function main() {
       email: "bob@example.com",
       username: "bob",
       password: passwordHash,
-      avatarUrl: "https://picsum.photos/seed/bob/200/200",
+      avatarUrl: "/avatar.jpg",
       bio: "I like street and portrait shots.",
     },
   });
@@ -54,7 +54,7 @@ async function main() {
       email: "carol@example.com",
       username: "carol",
       password: passwordHash,
-      avatarUrl: "https://picsum.photos/seed/carol/200/200",
+      avatarUrl: "/avatar.jpg",
       bio: "Event organizer.",
     },
   });

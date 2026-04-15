@@ -50,9 +50,7 @@ export async function GET(req: Request) {
       id: post.id,
       title: post.title || "Untitled",
       description: post.description || "",
-      image: post.imageUrl.startsWith("data:")
-        ? post.imageUrl
-        : `data:image/jpeg;base64,${post.imageUrl}`,
+      image: post.imageUrl,
       artist: post.user.username,
       avatar: post.user.avatarUrl || "/avatar.jpg",
       likes: post.likes.length,

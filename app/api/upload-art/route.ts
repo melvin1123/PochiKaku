@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { cloudinary } from "@/lib/cloudinary";
 
 type JwtPayload = {
   userId: string;
@@ -16,10 +17,7 @@ export async function POST(req: Request) {
       ?.split(";")[0];
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
@@ -42,15 +40,12 @@ export async function POST(req: Request) {
     const file = formData.get("file");
 
     if (!title) {
-      return NextResponse.json(
-        { error: "Title is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { error: "A valid file is required" },
+        { error: "A valid image file is required" },
         { status: 400 }
       );
     }
@@ -58,14 +53,19 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Temporary only
-    const imageUrl = buffer.toString("base64");
+    const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
+
+    const uploaded = await cloudinary.uploader.upload(dataUri, {
+      folder: "pochikomporo/posts",
+      resource_type: "image",
+    });
 
     const post = await prisma.post.create({
       data: {
         title,
         description: description || null,
-        imageUrl,
+        imageUrl: uploaded.secure_url,
+        imagePublicId: uploaded.public_id,
         userId: currentUser.id,
       },
     });
