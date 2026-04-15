@@ -8,5 +8,14 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/User'
-export type * from './commonInputTypes'
+export type * from './models/User.ts'
+export type * from './models/Post.ts'
+export type * from './models/Comment.ts'
+export type * from './models/Like.ts'
+export type * from './models/Follow.ts'
+export type * from './models/Tag.ts'
+export type * from './models/PostTag.ts'
+export type * from './models/Event.ts'
+export type * from './models/EventReferenceImage.ts'
+export type * from './models/EventSubmission.ts'
+export type * from './commonInputTypes.ts'

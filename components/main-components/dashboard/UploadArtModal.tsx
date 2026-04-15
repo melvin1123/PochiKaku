@@ -1,108 +1,170 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type UploadArtModalProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-export default function UploadArtModal({ isOpen, onClose }: UploadArtModalProps) {
+export default function UploadArtModal({
+  isOpen,
+  onClose,
+}: UploadArtModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
+    const selectedFile = e.target.files?.[0] ?? null;
+    setFile(selectedFile);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file || !title) return;
-    console.log({ title, description, tags, file });
-    onClose();
+  const resetForm = () => {
     setFile(null);
+    setPreviewUrl(null);
     setTitle("");
     setDescription("");
     setTags("");
+    setError("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    if (!file) {
+      setError("Please select an image.");
+      return;
+    }
+
+    if (!title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("description", description.trim());
+    formData.append("tags", tags.trim());
+    formData.append("file", file);
+
+
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch("/api/upload-art", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Upload failed.");
+      }
+
+      console.log("Post created:", data);
+
+      resetForm();
+      onClose();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+      console.error("Upload error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-   <div className="fixed inset-0 bg-opacity-20 backdrop-blur-sm flex justify-center items-center z-50">
-      <div className="bg-[#f5efe6] rounded-xl p-6 w-96 relative shadow-lg">
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+      <div className="relative w-full max-w-md rounded-xl bg-[#f5efe6] p-6 shadow-lg">
         <button
-          className="absolute top-3 right-3 text-[#3e2c23] text-lg font-bold"
+          type="button"
+          className="absolute right-3 top-3 text-lg font-bold text-[#3e2c23]"
           onClick={onClose}
+          aria-label="Close modal"
         >
           ×
         </button>
 
-        <h2 className="text-2xl font-semibold mb-4 text-[#3e2c23]">
+        <h2 className="mb-4 text-2xl font-semibold text-[#3e2c23]">
           Upload Your Art
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Title */}
           <input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="border border-[#5a4636] rounded-lg p-2"
+            className="rounded-lg border border-[#5a4636] p-2"
             required
           />
 
-          {/* Description */}
           <textarea
             placeholder="Description (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="border border-[#5a4636] rounded-lg p-2 resize-none h-20"
+            className="h-20 resize-none rounded-lg border border-[#5a4636] p-2"
           />
 
-          {/* Tags */}
           <input
             type="text"
             placeholder="Tags (comma separated)"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            className="border border-[#5a4636] rounded-lg p-2"
+            className="rounded-lg border border-[#5a4636] p-2"
           />
 
-          {/* File Input */}
           <input
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            className="border border-[#5a4636] rounded-lg p-2"
+            className="rounded-lg border border-[#5a4636] p-2"
             required
           />
 
-          {/* Preview */}
-          {file && (
-            <div className="relative w-full h-48 border border-[#5a4636] rounded-lg overflow-hidden">
-              <Image
-                src={URL.createObjectURL(file)}
+          {previewUrl && (
+            <div className="relative h-48 w-full overflow-hidden rounded-lg border border-[#5a4636]">
+              <img
+                src={previewUrl}
                 alt="Preview"
-                fill
-                className="object-contain"
+                className="h-full w-full object-contain"
               />
             </div>
           )}
 
-          {/* Submit */}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
           <button
             type="submit"
-            className="bg-[#3e2c23] text-[#f5efe6] rounded-xl py-2 font-semibold hover:bg-[#5a4636] transition"
+            disabled={isSubmitting}
+            className="rounded-xl bg-[#3e2c23] py-2 font-semibold text-[#f5efe6] transition hover:bg-[#5a4636] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Upload
+            {isSubmitting ? "Uploading..." : "Upload"}
           </button>
         </form>
       </div>

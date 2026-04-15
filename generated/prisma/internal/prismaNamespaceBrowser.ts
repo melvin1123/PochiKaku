@@ -17,8 +17,8 @@
 
 import * as runtime from "@prisma/client/runtime/index-browser"
 
-export type * from '../models'
-export type * from './prismaNamespace'
+export type * from '../models.ts'
+export type * from './prismaNamespace.ts'
 
 export const Decimal = runtime.Decimal
 
@@ -51,7 +51,16 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  User: 'User'
+  User: 'User',
+  Post: 'Post',
+  Comment: 'Comment',
+  Like: 'Like',
+  Follow: 'Follow',
+  Tag: 'Tag',
+  PostTag: 'PostTag',
+  Event: 'Event',
+  EventReferenceImage: 'EventReferenceImage',
+  EventSubmission: 'EventSubmission'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -72,11 +81,111 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  email: 'email'
+  email: 'email',
+  username: 'username',
+  password: 'password',
+  avatarUrl: 'avatarUrl',
+  bio: 'bio',
+  createdAt: 'createdAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const PostScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  imageUrl: 'imageUrl',
+  imagePublicId: 'imagePublicId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId'
+} as const
+
+export type PostScalarFieldEnum = (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum]
+
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  postId: 'postId'
+} as const
+
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const LikeScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  postId: 'postId'
+} as const
+
+export type LikeScalarFieldEnum = (typeof LikeScalarFieldEnum)[keyof typeof LikeScalarFieldEnum]
+
+
+export const FollowScalarFieldEnum = {
+  id: 'id',
+  followerId: 'followerId',
+  followingId: 'followingId',
+  createdAt: 'createdAt'
+} as const
+
+export type FollowScalarFieldEnum = (typeof FollowScalarFieldEnum)[keyof typeof FollowScalarFieldEnum]
+
+
+export const TagScalarFieldEnum = {
+  id: 'id',
+  name: 'name'
+} as const
+
+export type TagScalarFieldEnum = (typeof TagScalarFieldEnum)[keyof typeof TagScalarFieldEnum]
+
+
+export const PostTagScalarFieldEnum = {
+  postId: 'postId',
+  tagId: 'tagId'
+} as const
+
+export type PostTagScalarFieldEnum = (typeof PostTagScalarFieldEnum)[keyof typeof PostTagScalarFieldEnum]
+
+
+export const EventScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  backdropImage: 'backdropImage',
+  startDate: 'startDate',
+  deadline: 'deadline',
+  createdAt: 'createdAt',
+  createdBy: 'createdBy'
+} as const
+
+export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof EventScalarFieldEnum]
+
+
+export const EventReferenceImageScalarFieldEnum = {
+  id: 'id',
+  imageUrl: 'imageUrl',
+  eventId: 'eventId'
+} as const
+
+export type EventReferenceImageScalarFieldEnum = (typeof EventReferenceImageScalarFieldEnum)[keyof typeof EventReferenceImageScalarFieldEnum]
+
+
+export const EventSubmissionScalarFieldEnum = {
+  id: 'id',
+  caption: 'caption',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  eventId: 'eventId',
+  postId: 'postId'
+} as const
+
+export type EventSubmissionScalarFieldEnum = (typeof EventSubmissionScalarFieldEnum)[keyof typeof EventSubmissionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -96,9 +205,100 @@ export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 export const UserOrderByRelevanceFieldEnum = {
-  name: 'name',
-  email: 'email'
+  id: 'id',
+  email: 'email',
+  username: 'username',
+  password: 'password',
+  avatarUrl: 'avatarUrl',
+  bio: 'bio'
 } as const
 
 export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
+
+
+export const PostOrderByRelevanceFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  imageUrl: 'imageUrl',
+  imagePublicId: 'imagePublicId',
+  userId: 'userId'
+} as const
+
+export type PostOrderByRelevanceFieldEnum = (typeof PostOrderByRelevanceFieldEnum)[keyof typeof PostOrderByRelevanceFieldEnum]
+
+
+export const CommentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  content: 'content',
+  userId: 'userId',
+  postId: 'postId'
+} as const
+
+export type CommentOrderByRelevanceFieldEnum = (typeof CommentOrderByRelevanceFieldEnum)[keyof typeof CommentOrderByRelevanceFieldEnum]
+
+
+export const LikeOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  postId: 'postId'
+} as const
+
+export type LikeOrderByRelevanceFieldEnum = (typeof LikeOrderByRelevanceFieldEnum)[keyof typeof LikeOrderByRelevanceFieldEnum]
+
+
+export const FollowOrderByRelevanceFieldEnum = {
+  id: 'id',
+  followerId: 'followerId',
+  followingId: 'followingId'
+} as const
+
+export type FollowOrderByRelevanceFieldEnum = (typeof FollowOrderByRelevanceFieldEnum)[keyof typeof FollowOrderByRelevanceFieldEnum]
+
+
+export const TagOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name'
+} as const
+
+export type TagOrderByRelevanceFieldEnum = (typeof TagOrderByRelevanceFieldEnum)[keyof typeof TagOrderByRelevanceFieldEnum]
+
+
+export const PostTagOrderByRelevanceFieldEnum = {
+  postId: 'postId',
+  tagId: 'tagId'
+} as const
+
+export type PostTagOrderByRelevanceFieldEnum = (typeof PostTagOrderByRelevanceFieldEnum)[keyof typeof PostTagOrderByRelevanceFieldEnum]
+
+
+export const EventOrderByRelevanceFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  backdropImage: 'backdropImage',
+  createdBy: 'createdBy'
+} as const
+
+export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
+
+
+export const EventReferenceImageOrderByRelevanceFieldEnum = {
+  id: 'id',
+  imageUrl: 'imageUrl',
+  eventId: 'eventId'
+} as const
+
+export type EventReferenceImageOrderByRelevanceFieldEnum = (typeof EventReferenceImageOrderByRelevanceFieldEnum)[keyof typeof EventReferenceImageOrderByRelevanceFieldEnum]
+
+
+export const EventSubmissionOrderByRelevanceFieldEnum = {
+  id: 'id',
+  caption: 'caption',
+  userId: 'userId',
+  eventId: 'eventId',
+  postId: 'postId'
+} as const
+
+export type EventSubmissionOrderByRelevanceFieldEnum = (typeof EventSubmissionOrderByRelevanceFieldEnum)[keyof typeof EventSubmissionOrderByRelevanceFieldEnum]
 

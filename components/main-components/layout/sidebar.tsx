@@ -22,7 +22,7 @@ export default function Sidebar() {
           </Link>
         ))}
         <Link
-          href="/auth/login"
+          href="/auth"
           className="hover:text-[#e8dfd3] mt-auto"
         >
           Logout

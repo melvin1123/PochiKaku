@@ -1,15 +1,180 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////////////////////
+// 👤 USER
+//////////////////////////////////////////////////////
+
 model User {
-  id    Int     @id @default(autoincrement())
-  name  String?
-  email String  @unique
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  avatarUrl String?
+  bio       String?
+  createdAt DateTime @default(now())
+
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+
+  followers Follow[] @relation("followers")
+  following Follow[] @relation("following")
+
+  eventsCreated Event[] @relation("EventCreator")
+  submissions   EventSubmission[]
+}
+
+//////////////////////////////////////////////////////
+// 🎨 POST
+//////////////////////////////////////////////////////
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  imageUrl    String
+  imagePublicId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+  likes    Like[]
+  tags     PostTag[]
+  eventSubmission EventSubmission?
+}
+
+//////////////////////////////////////////////////////
+// 💬 COMMENT
+//////////////////////////////////////////////////////
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  userId String
+  postId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////
+// ❤️ LIKE
+//////////////////////////////////////////////////////
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  postId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+//////////////////////////////////////////////////////
+// 👥 FOLLOW
+//////////////////////////////////////////////////////
+
+model Follow {
+  id String @id @default(cuid())
+
+  followerId  String
+  followingId String
+
+  follower User @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+//////////////////////////////////////////////////////
+// 🏷 TAGGING SYSTEM
+//////////////////////////////////////////////////////
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+
+  posts PostTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+//////////////////////////////////////////////////////
+// 🏆 EVENT SYSTEM
+//////////////////////////////////////////////////////
+
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  backdropImage String
+  startDate     DateTime
+  deadline      DateTime
+  createdAt     DateTime @default(now())
+
+  createdBy String
+  creator   User @relation("EventCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  submissions      EventSubmission[]
+  referenceImages  EventReferenceImage[]
+}
+
+model EventReferenceImage {
+  id       String @id @default(cuid())
+  imageUrl String
+
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model EventSubmission {
+  id        String   @id @default(cuid())
+  caption   String?
+  createdAt DateTime @default(now())
+
+  userId String
+  eventId String
+  postId  String @unique
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
 }

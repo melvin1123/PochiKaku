@@ -10,11 +10,15 @@ type Post = {
 
 export default function RecentUploadCard({ post }: { post: Post }) {
   return (
-    <div className="w-60 bg-[#f5efe6] rounded-2xl shadow-md hover:shadow-lg flex flex-col">
+    <div className="w-60 bg-[#f5efe6] rounded-2xl shadow-md hover:shadow-lg overflow-hidden flex flex-col">
 
+      {/* Title / Caption */}
+      <div className="p-3 flex-none border-b border-[#e8dfd3]">
+        <p className="text-[#3e2c23] font-semibold text-base">{post.title}</p>
+      </div>
 
       {/* IMAGE */}
-      <div className="relative w-full h-60">
+      <div className="relative h-65 w-full">
         <Image
           src={post.image}
           alt={post.title}

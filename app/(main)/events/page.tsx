@@ -2,6 +2,8 @@
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import EventsHeader from "@/components/main-components/events/EventsHeader";
 import EventsGrid from "@/components/main-components/events/EventsGrid";
+import EventCreationModal from "@/components/main-components/events/EventCreationModal";
+import { useState } from "react";
 
 const events = [
   {
@@ -31,13 +33,16 @@ const events = [
 ];
 
 export default function EventsPage() {
-  const handleCreate = () => {
-    alert("Create Event clicked!");
-  };
+
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   return (
     <MainLayout>
-      <EventsHeader onCreate={handleCreate} />
+      <EventsHeader onCreate={() => setIsEventModalOpen(true)} />
+      <EventCreationModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+      />
       <section className="p-4 ml-4 mr-4 flex-1">
         <EventsGrid events={events} />
       </section>

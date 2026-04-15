@@ -26,11 +26,6 @@ export default function ArtCard({ title, artist, img, onClick }: ArtCardProps) {
         <span className="text-white font-semibold">View</span>
       </div>
 
-      {/* Info */}
-      <div className="p-4">
-        <h4 className="font-semibold">{title}</h4>
-        <p className="text-sm text-[#5a4636]">by {artist}</p>
-      </div>
     </div>
   );
 }

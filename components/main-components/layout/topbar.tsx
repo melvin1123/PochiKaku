@@ -1,6 +1,18 @@
+"use client";
+
 import { FaBell } from "react-icons/fa";
+import { useEffect, useState } from "react";
 
 export default function Topbar() {
+  const [user, setUser] = useState<any>(null);
+
+   useEffect(() => {
+    fetch("/api/auth/me")
+      .then(res => res.json())
+      .then(data => setUser(data.user));
+      
+  }, []);
+
   return (
     <div className="flex justify-end items-center p-4">
       <button className="relative p-1 hover:text-[#5a4636] transition">
@@ -14,7 +26,9 @@ export default function Topbar() {
           alt="User Avatar"
           className="w-10 h-10 rounded-full object-cover border-2 border-[#5a4636]"
         />
-        <span className="font-medium text-[#3e2c23]">ArtistName</span>
+         <span className="font-medium text-[#3e2c23]">
+            {user ? user.username : ""}
+          </span>
       </div>
     </div>
   );

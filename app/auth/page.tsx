@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
 
 const floatingCards = [
@@ -105,19 +106,48 @@ export default function AuthPage() {
 }
 
 function LoginForm() {
+  const router = useRouter(); // ✅ FIXED (inside component)
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<any>({});
 
-  const handleSubmit = () => {
-    const result = loginSchema.safeParse(form);
+const handleSubmit = async () => {
+  const result = loginSchema.safeParse(form);
 
-    if (!result.success) {
-      setErrors(result.error.flatten().fieldErrors);
-    } else {
-      setErrors({});
-      console.log("Login success", result.data);
+  if (!result.success) {
+    setErrors(result.error.flatten().fieldErrors);
+    return;
+  }
+
+  setErrors({});
+
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setErrors({ general: data.error });
+      return;
     }
-  };
+
+    router.push("/homepage");
+    router.refresh();
+
+  } catch (err) {
+    console.error(err);
+    setErrors({ general: "Something went wrong" });
+  }
+};
 
   return (
     <div className="space-y-4">
@@ -146,30 +176,73 @@ function LoginForm() {
       >
         Login
       </button>
+            {errors.general && (
+        <p className="text-red-500 text-sm">{errors.general}</p>
+      )}
     </div>
   );
 }
 
 function RegisterForm() {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  });
+
   const [errors, setErrors] = useState<any>({});
 
-  const handleSubmit = () => {
-    const result = registerSchema.safeParse(form);
+  const handleSubmit = async () => {
+    if (form.password !== form.confirmPassword) {
+    setErrors({ confirmPassword: ["Passwords do not match"] });
+    return;
+  }
+  const result = registerSchema.safeParse(form);
 
-    if (!result.success) {
-      setErrors(result.error.flatten().fieldErrors);
-    } else {
-      setErrors({});
-      console.log("Register success", result.data);
+  if (!result.success) {
+    setErrors(result.error.flatten().fieldErrors);
+    return;
+  }
+
+  setErrors({});
+
+  try {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: form.username.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setErrors({ general: data.error });
+      return;
     }
-  };
+
+    console.log("Register success:", data);
+
+    // ✅ redirect to login (or auto-login later)
+    window.location.href = "/auth";
+
+  } catch (err) {
+    console.error(err);
+    setErrors({ general: "Something went wrong" });
+  }
+};
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 ">
       <div>
         <input
-          placeholder="Username"
+          placeholder="Artist Name"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, username: e.target.value })}
         />
@@ -195,16 +268,37 @@ function RegisterForm() {
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password[0]}</p>}
       </div>
 
+      <div>
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
+          onChange={(e) =>
+            setForm({ ...form, confirmPassword: e.target.value })
+          }
+        />
+
+        {errors.confirmPassword && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.confirmPassword[0]}
+          </p>
+        )}
+      </div>
+
       <p className="text-xs text-[#6b5a4d]">
         Password must include uppercase and a number.
       </p>
 
       <button
+        type="button"
         onClick={handleSubmit}
         className="w-full bg-[#6b4f3b] text-white py-3 rounded-xl hover:-translate-y-0.5 transition"
       >
         Register
       </button>
+      {errors.general && (
+        <p className="text-red-500 text-sm">{errors.general}</p>
+      )}
     </div>
   );
 }

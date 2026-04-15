@@ -1,85 +1,104 @@
 "use client";
-import { FaPlus, FaPalette, FaUsers, FaCalendar, FaUser } from "react-icons/fa";
+
+import { useEffect, useState } from "react";
+import { FaPlus, FaPalette, FaCalendar, FaUser } from "react-icons/fa";
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import QuickActionCard from "@/components/main-components/dashboard/QuickActionCard";
 import ArtPostCard from "@/components/main-components/homepage/ArtPostCard";
 import RecentUploadCard from "@/components/main-components/dashboard/RecentUploadCard";
 import UploadArtModal from "@/components/main-components/dashboard/UploadArtModal";
-import { useState } from "react";
 
+type PostItem = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  artist: string;
+  avatar: string;
+  likes: number;
+  comments: number;
+  userId: string;
+  createdAt: string;
+};
 
-const recentArtworks = [
-  {
-    image: "/featured/lost-city.jpg",
-    title: "Golden Hour",
-    artist: "Frank",
-    avatar: "/avatar.jpg",
-    likes: 10,
-    comments: 2,
-  },
-  {
-    image: "/featured/warm-coffee.jpg",
-    title: "City Vibes",
-    artist: "Bob",
-    avatar: "/avatar.jpg",
-    likes: 15,
-    comments: 1,
-  },
-  {
-    image: "/featured/sketch-vibes  .jpg",
-    title: "Mystic Forest",
-    artist: "Cara",
-    avatar: "/avatar.jpg",
-    likes: 25,
-    comments: 4,
-  },
-];
+type CurrentUser = {
+  id: string;
+  email: string;
+  username: string;
+};
 
-const posts = [
-  {
-    image: "/featured/golden-hour.jpg",
-    title: "Golden Hour",
-    artist: "Frank",
-    avatar: "/avatar.jpg",
-    likes: 10,
-    comments: 2,
-  },
-  {
-    image: "/featured/forest-dream.jpg",
-    title: "Mystic Forest",
-    artist: "Cara",
-    avatar: "/avatar.jpg",
-    likes: 20,
-    comments: 3,
-  },
-];
-
+type PostsResponse = {
+  currentUser: CurrentUser;
+  recentUploads: PostItem[];
+  posts: PostItem[];
+  error?: string;
+};
 
 export default function HomePage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [recentArtworks, setRecentArtworks] = useState<PostItem[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const quickActions = [
-  { title: "Upload Art", icon: FaPlus, onClick: () => setIsUploadModalOpen(true) },
-  { title: "View Gallery", icon: FaPalette, link: "/gallery" },
-  { title: "My Arts", icon: FaUser, link: "#" },
-  { title: "Upcoming Events", icon: FaCalendar, link: "/events" },
+    { title: "Upload Art", icon: FaPlus, onClick: () => setIsUploadModalOpen(true) },
+    { title: "View Gallery", icon: FaPalette, link: "/gallery" },
+    { title: "My Works", icon: FaUser, link: "#" },
+    { title: "Upcoming Events", icon: FaCalendar, link: "/events" },
   ];
+
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const res = await fetch("/api/posts", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+      });
+
+      const data: PostsResponse = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch posts.");
+      }
+
+      setCurrentUser(data.currentUser);
+      setRecentArtworks(data.recentUploads);
+      setPosts(data.posts);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setError(message);
+      console.error("Fetch posts error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
   return (
     <MainLayout>
-      {/* Welcome Message */}
       <div className="ml-8">
         <h2 className="text-3xl font-bold">
-          Welcome back, <span className="text-[#5a4636]">Artist</span>!
+          Welcome back,{" "}
+          <span className="text-[#5a4636]">
+            {currentUser?.username || "Artist"}
+          </span>
+          !
         </h2>
-        <p className="text-[#5a4636] mt-1">
+        <p className="mt-1 text-[#5a4636]">
           Here’s what’s happening in your community today.
         </p>
       </div>
 
-
-
-       {/* Quick Actions */}
-      <section className="p-4 ml-4 mt-4 mr-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+      <section className="mb-6 ml-4 mr-4 mt-4 grid grid-cols-1 gap-6 p-4 sm:grid-cols-2 md:grid-cols-4">
         {quickActions.map(({ title, icon, link, onClick }, idx) => (
           <QuickActionCard
             key={idx}
@@ -91,36 +110,51 @@ export default function HomePage() {
         ))}
       </section>
 
-      {/* Upload Modal */}
       {isUploadModalOpen && (
         <UploadArtModal
-          isOpen={isUploadModalOpen}            
-          onClose={() => setIsUploadModalOpen(false)} 
-/>
+          isOpen={isUploadModalOpen}
+          onClose={() => {
+            setIsUploadModalOpen(false);
+            fetchPosts();
+          }}
+        />
       )}
 
-
-
-
-      {/* Recent Artworks */}
       <section className="p-4 ml-4 mr-4">
-        <h3 className="text-2xl font-bold mb-6">Recent Uploads</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {recentArtworks.map((post, index) => (
-            <RecentUploadCard key={index} post={post} />
-          ))}
-        </div>
+        <h3 className="mb-6 text-2xl font-bold">Recent Uploads</h3>
+
+        {isLoading ? (
+          <p className="text-[#5a4636]">Loading your recent uploads...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : recentArtworks.length === 0 ? (
+          <p className="text-[#5a4636]">You have no recent uploads yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {recentArtworks.map((post) => (
+              <RecentUploadCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="p-4 ml-4 mr-4 items-center">
-        <h3 className="text-2xl font-bold mb-6">Discover Others</h3>
-        <div className="flex flex-wrap gap-6">
-          {posts.map((post, index) => (
-            <ArtPostCard key={index} post={post} />
-          ))}
-        </div>
-      </section>
+        <h3 className="mb-6 text-2xl font-bold">Discover Others</h3>
 
+        {isLoading ? (
+          <p className="text-[#5a4636]">Loading posts...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : posts.length === 0 ? (
+          <p className="text-[#5a4636]">No posts found.</p>
+        ) : (
+          <div className="flex flex-wrap gap-6">
+            {posts.map((post) => (
+              <ArtPostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
+      </section>
     </MainLayout>
   );
 }
