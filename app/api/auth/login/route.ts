@@ -9,7 +9,6 @@ export async function POST(req: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Find user
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
@@ -21,7 +20,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Check password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -31,7 +29,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Create JWT
     const token = jwt.sign(
       {
         userId: user.id,
@@ -42,7 +39,6 @@ export async function POST(req: Request) {
       { expiresIn: "7d" }
     );
 
-    // 4. Set cookie (IMPORTANT: use NextResponse, not cookies())
     const response = NextResponse.json({
       message: "Login successful",
       user: {
@@ -57,14 +53,14 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
-
-  } catch (err) {
-     console.error("LOGIN ERROR:", err);
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
     return NextResponse.json(
-      { error: err.message },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }

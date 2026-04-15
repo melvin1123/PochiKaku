@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { UploadApiResponse } from "cloudinary";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
 
@@ -47,6 +48,12 @@ function formatEventResponse(event: {
     id: string;
     imageUrl: string;
   }>;
+  participants: Array<{
+    user: {
+      id: string;
+      username: string;
+    };
+  }>;
 }) {
   return {
     id: event.id,
@@ -61,6 +68,10 @@ function formatEventResponse(event: {
     createdBy: event.createdBy,
     creator: event.creator,
     referenceImages: event.referenceImages,
+    participants: event.participants.map((participant) => ({
+      id: participant.user.id,
+      username: participant.user.username,
+    })),
   };
 }
 
@@ -93,7 +104,10 @@ function validateImageFile(file: File, label: string): string | null {
   return null;
 }
 
-async function uploadFileToCloudinary(file: File, folder: string): Promise<string> {
+async function uploadFileToCloudinary(
+  file: File,
+  folder: string,
+): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
@@ -116,7 +130,7 @@ async function uploadFileToCloudinary(file: File, folder: string): Promise<strin
         }
 
         resolve(result.secure_url);
-      }
+      },
     );
 
     stream.end(buffer);
@@ -125,27 +139,59 @@ async function uploadFileToCloudinary(file: File, folder: string): Promise<strin
 
 export async function GET() {
   try {
+    const user = await getCurrentUser();
+
     const events = await prisma.event.findMany({
+  include: {
+    referenceImages: true,
+    creator: {
+      select: {
+        id: true,
+        username: true,
+      },
+    },
+    participants: {
       include: {
-        referenceImages: true,
-        creator: {
+        user: {
           select: {
             id: true,
             username: true,
           },
         },
       },
-      orderBy: {
-        startDate: "asc",
-      },
+    },
+  },
+  orderBy: {
+    startDate: "asc",
+  },
+});
+
+    let joinedEventIds: string[] = [];
+
+    if (user) {
+      const joined = await prisma.eventParticipant.findMany({
+        where: { userId: user.id },
+        select: { eventId: true },
+      });
+
+      joinedEventIds = joined.map((item) => item.eventId);
+    }
+
+    const formatted = events.map((event) => {
+      const base = formatEventResponse(event);
+
+      return {
+        ...base,
+        joined: joinedEventIds.includes(event.id),
+      };
     });
 
-    return NextResponse.json(events.map(formatEventResponse));
+    return NextResponse.json(formatted);
   } catch (error) {
     console.error("GET /api/events failed:", error);
     return NextResponse.json(
       { error: "Failed to load events." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -165,61 +211,65 @@ export async function POST(request: Request) {
     const startDate = startDateValue ? new Date(startDateValue) : null;
     const deadline = deadlineValue ? new Date(deadlineValue) : null;
 
-    if (!title || !description || !isValidDate(startDate) || !isValidDate(deadline)) {
+    if (
+      !title ||
+      !description ||
+      !isValidDate(startDate) ||
+      !isValidDate(deadline)
+    ) {
       return NextResponse.json(
         { error: "Missing or invalid required fields." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!(backdropImageEntry instanceof File)) {
       return NextResponse.json(
         { error: "Backdrop image is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (deadline < startDate) {
       return NextResponse.json(
         { error: "Deadline cannot be earlier than start date." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const backdropValidationError = validateImageFile(
       backdropImageEntry,
-      "Backdrop image"
+      "Backdrop image",
     );
 
     if (backdropValidationError) {
       return NextResponse.json(
         { error: backdropValidationError },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const referenceFiles = referenceImageEntries.filter(
-      (entry): entry is File => entry instanceof File && entry.size > 0
+      (entry): entry is File => entry instanceof File && entry.size > 0,
     );
 
     if (referenceFiles.length > MAX_REFERENCE_IMAGES) {
       return NextResponse.json(
-        { error: `You can upload up to ${MAX_REFERENCE_IMAGES} reference images only.` },
-        { status: 400 }
+        {
+          error: `You can upload up to ${MAX_REFERENCE_IMAGES} reference images only.`,
+        },
+        { status: 400 },
       );
     }
 
     for (let index = 0; index < referenceFiles.length; index += 1) {
       const validationError = validateImageFile(
         referenceFiles[index],
-        `Reference image ${index + 1}`
+        `Reference image ${index + 1}`,
       );
 
       if (validationError) {
-        return NextResponse.json(
-          { error: validationError },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: validationError }, { status: 400 });
       }
     }
 
@@ -228,17 +278,19 @@ export async function POST(request: Request) {
     if (!createdBy) {
       return NextResponse.json(
         { error: "No user found to assign as event creator." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const backdropImageUrl = await uploadFileToCloudinary(
       backdropImageEntry,
-      BACKDROP_FOLDER
+      BACKDROP_FOLDER,
     );
 
     const referenceImageUrls = await Promise.all(
-      referenceFiles.map((file) => uploadFileToCloudinary(file, REFERENCE_FOLDER))
+      referenceFiles.map((file) =>
+        uploadFileToCloudinary(file, REFERENCE_FOLDER),
+      ),
     );
 
     const createdEvent = await prisma.event.create({
@@ -266,18 +318,18 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(formatEventResponse(createdEvent), { status: 201 });
+    return NextResponse.json(formatEventResponse(createdEvent), {
+      status: 201,
+    });
   } catch (error) {
     console.error("POST /api/events failed:", error);
 
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : "Failed to create event.",
+          error instanceof Error ? error.message : "Failed to create event.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

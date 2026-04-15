@@ -6,11 +6,9 @@ export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
 
-    // normalize input
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedUsername = username.trim();
 
-    // 🔍 check if user already exists
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
@@ -27,10 +25,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔐 hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 👤 create user
     const user = await prisma.user.create({
       data: {
         id: crypto.randomUUID(),
@@ -38,15 +34,19 @@ export async function POST(req: Request) {
         username: normalizedUsername,
         password: hashedPassword,
       },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+      },
     });
 
     return NextResponse.json({
       message: "User created successfully",
       user,
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("REGISTER ERROR:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
