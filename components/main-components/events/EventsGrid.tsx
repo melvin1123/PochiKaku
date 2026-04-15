@@ -1,22 +1,21 @@
 "use client";
-import EventCard from "./EventCard";
 
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  img: string;
-  date: string;
-  status: "Ongoing" | "Upcoming" | "Ended";
-}
+import EventCard from "./EventCard";
+import type { EventItem } from "@/app/events/page";
 
 interface EventsGridProps {
-  events: Event[];
+  events: EventItem[];
+  onView?: (event: EventItem) => void;
+  onJoin?: (event: EventItem) => void;
 }
 
-export default function EventsGrid({ events }: EventsGridProps) {
+export default function EventsGrid({
+  events,
+  onView,
+  onJoin,
+}: EventsGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {events.map((event) => (
         <EventCard
           key={event.id}
@@ -25,6 +24,8 @@ export default function EventsGrid({ events }: EventsGridProps) {
           img={event.img}
           date={event.date}
           status={event.status}
+          onView={() => onView?.(event)}
+          onJoin={() => onJoin?.(event)}
         />
       ))}
     </div>

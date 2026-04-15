@@ -16,6 +16,7 @@ const galleryItems = [
   { id: 8, title: "HKS Character", artist: "Void", img: "/featured/download (5).jpg" },
   { id: 9, title: "Changli", artist: "John", img: "/featured/changli.jpg" },
   { id: 10, title: "Reverse 99", artist: "Bob", img: "/featured/download (6).jpg" },
+  { id: 10, title: "Unholy", artist: "Bob", img: "/featured/Unholy .png" },
 ];
 
 export default function GalleryPage() {
