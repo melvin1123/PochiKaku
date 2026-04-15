@@ -1,37 +1,31 @@
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserFromToken }  from "@/lib/auth/auth";
 
-type JwtPayload = {
-  userId: string;
-  email: string;
-  username: string;
-};
+function formatTimeAgo(date: Date) {
+  const now = new Date();
+  const diffMs = now.getTime() - new Date(date).getTime();
 
-export async function GET(req: Request) {
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(date).toLocaleDateString();
+}
+
+export async function GET() {
   try {
-    const token = req.headers
-      .get("cookie")
-      ?.split("token=")[1]
-      ?.split(";")[0];
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
+    const currentUser = await getCurrentUserFromToken();
 
     if (!currentUser) {
       return NextResponse.json(
-        { error: "Authenticated user not found" },
-        { status: 404 }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
@@ -42,29 +36,61 @@ export async function GET(req: Request) {
       include: {
         user: true,
         likes: true,
-        comments: true,
+        comments: {
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
     });
 
-    const cloudinaryBaseUrl = "https://res.cloudinary.com/";
+    const cloudinaryBaseUrl = "https://res.cloudinary.com/dh8rpbwxq/";
+
+    const following = await prisma.follow.findMany({
+      where: {
+        followerId: currentUser.id,
+      },
+      select: {
+        followingId: true,
+      },
+    });
+
+    const followingIds = new Set(following.map((f) => f.followingId));
 
     const formattedPosts = posts
       .filter((post) => post.imageUrl.startsWith(cloudinaryBaseUrl))
       .map((post) => ({
         id: post.id,
-        title: post.title || "Untitled",
-        description: post.description || "",
         image: post.imageUrl,
+        title: post.title || "Untitled",
         artist: post.user.username,
+        artistId: post.user.id,
         avatar: post.user.avatarUrl || "/avatar.jpg",
         likes: post.likes.length,
         comments: post.comments.length,
-        userId: post.userId,
-        createdAt: post.createdAt,
+        time: formatTimeAgo(post.createdAt),
+        isLiked: post.likes.some((like) => like.userId === currentUser.id),
+        isFollowed:
+          post.user.id === currentUser.id
+            ? true
+            : followingIds.has(post.user.id),
+        commentsPreview: post.comments.map((comment) => ({
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.createdAt.toISOString(),
+          user: {
+            id: comment.user.id,
+            username: comment.user.username,
+            avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+          },
+        })),
       }));
 
     const recentUploads = formattedPosts
-      .filter((post) => post.userId === currentUser.id)
+      .filter((post) => post.artistId === currentUser.id)
       .slice(0, 3);
 
     return NextResponse.json(
@@ -80,7 +106,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Fetch posts error:", error);
+    console.error("GET /api/posts error:", error);
 
     return NextResponse.json(
       {
