@@ -91,7 +91,7 @@ export default function EventsPage() {
 
   return (
     <MainLayout>
-      <div className="flex min-h-full flex-col">
+      <div className="flex min-h-fit border-2 flex-col">
         <EventsHeader onCreate={() => setIsEventModalOpen(true)} />
 
         <EventCreationModal
