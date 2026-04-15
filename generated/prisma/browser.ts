@@ -58,6 +58,11 @@ export type PostTag = Prisma.PostTagModel
  */
 export type Event = Prisma.EventModel
 /**
+ * Model EventParticipant
+ * 
+ */
+export type EventParticipant = Prisma.EventParticipantModel
+/**
  * Model EventReferenceImage
  * 
  */

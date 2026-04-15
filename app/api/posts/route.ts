@@ -46,18 +46,22 @@ export async function GET(req: Request) {
       },
     });
 
-    const formattedPosts = posts.map((post) => ({
-      id: post.id,
-      title: post.title || "Untitled",
-      description: post.description || "",
-      image: post.imageUrl,
-      artist: post.user.username,
-      avatar: post.user.avatarUrl || "/avatar.jpg",
-      likes: post.likes.length,
-      comments: post.comments.length,
-      userId: post.userId,
-      createdAt: post.createdAt,
-    }));
+    const cloudinaryBaseUrl = "https://res.cloudinary.com/";
+
+    const formattedPosts = posts
+      .filter((post) => post.imageUrl.startsWith(cloudinaryBaseUrl))
+      .map((post) => ({
+        id: post.id,
+        title: post.title || "Untitled",
+        description: post.description || "",
+        image: post.imageUrl,
+        artist: post.user.username,
+        avatar: post.user.avatarUrl || "/avatar.jpg",
+        likes: post.likes.length,
+        comments: post.comments.length,
+        userId: post.userId,
+        createdAt: post.createdAt,
+      }));
 
     const recentUploads = formattedPosts
       .filter((post) => post.userId === currentUser.id)
@@ -79,7 +83,9 @@ export async function GET(req: Request) {
     console.error("Fetch posts error:", error);
 
     return NextResponse.json(
-      { error: "Failed to fetch posts" },
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch posts",
+      },
       { status: 500 }
     );
   }

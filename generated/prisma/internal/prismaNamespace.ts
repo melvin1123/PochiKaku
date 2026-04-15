@@ -392,6 +392,7 @@ export const ModelName = {
   Tag: 'Tag',
   PostTag: 'PostTag',
   Event: 'Event',
+  EventParticipant: 'EventParticipant',
   EventReferenceImage: 'EventReferenceImage',
   EventSubmission: 'EventSubmission'
 } as const
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "post" | "comment" | "like" | "follow" | "tag" | "postTag" | "event" | "eventReferenceImage" | "eventSubmission"
+    modelProps: "user" | "post" | "comment" | "like" | "follow" | "tag" | "postTag" | "event" | "eventParticipant" | "eventReferenceImage" | "eventSubmission"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -941,6 +942,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EventParticipant: {
+      payload: Prisma.$EventParticipantPayload<ExtArgs>
+      fields: Prisma.EventParticipantFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EventParticipantFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EventParticipantFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        findFirst: {
+          args: Prisma.EventParticipantFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EventParticipantFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        findMany: {
+          args: Prisma.EventParticipantFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>[]
+        }
+        create: {
+          args: Prisma.EventParticipantCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        createMany: {
+          args: Prisma.EventParticipantCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.EventParticipantDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        update: {
+          args: Prisma.EventParticipantUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        deleteMany: {
+          args: Prisma.EventParticipantDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EventParticipantUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.EventParticipantUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EventParticipantPayload>
+        }
+        aggregate: {
+          args: Prisma.EventParticipantAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEventParticipant>
+        }
+        groupBy: {
+          args: Prisma.EventParticipantGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EventParticipantGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EventParticipantCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EventParticipantCountAggregateOutputType> | number
+        }
+      }
+    }
     EventReferenceImage: {
       payload: Prisma.$EventReferenceImagePayload<ExtArgs>
       fields: Prisma.EventReferenceImageFieldRefs
@@ -1200,6 +1267,17 @@ export const EventScalarFieldEnum = {
 export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof EventScalarFieldEnum]
 
 
+export const EventParticipantScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  status: 'status',
+  userId: 'userId',
+  eventId: 'eventId'
+} as const
+
+export type EventParticipantScalarFieldEnum = (typeof EventParticipantScalarFieldEnum)[keyof typeof EventParticipantScalarFieldEnum]
+
+
 export const EventReferenceImageScalarFieldEnum = {
   id: 'id',
   imageUrl: 'imageUrl',
@@ -1213,6 +1291,7 @@ export const EventSubmissionScalarFieldEnum = {
   id: 'id',
   caption: 'caption',
   createdAt: 'createdAt',
+  participantId: 'participantId',
   userId: 'userId',
   eventId: 'eventId',
   postId: 'postId'
@@ -1316,6 +1395,16 @@ export const EventOrderByRelevanceFieldEnum = {
 export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
 
 
+export const EventParticipantOrderByRelevanceFieldEnum = {
+  id: 'id',
+  status: 'status',
+  userId: 'userId',
+  eventId: 'eventId'
+} as const
+
+export type EventParticipantOrderByRelevanceFieldEnum = (typeof EventParticipantOrderByRelevanceFieldEnum)[keyof typeof EventParticipantOrderByRelevanceFieldEnum]
+
+
 export const EventReferenceImageOrderByRelevanceFieldEnum = {
   id: 'id',
   imageUrl: 'imageUrl',
@@ -1328,6 +1417,7 @@ export type EventReferenceImageOrderByRelevanceFieldEnum = (typeof EventReferenc
 export const EventSubmissionOrderByRelevanceFieldEnum = {
   id: 'id',
   caption: 'caption',
+  participantId: 'participantId',
   userId: 'userId',
   eventId: 'eventId',
   postId: 'postId'
@@ -1465,6 +1555,7 @@ export type GlobalOmitConfig = {
   tag?: Prisma.TagOmit
   postTag?: Prisma.PostTagOmit
   event?: Prisma.EventOmit
+  eventParticipant?: Prisma.EventParticipantOmit
   eventReferenceImage?: Prisma.EventReferenceImageOmit
   eventSubmission?: Prisma.EventSubmissionOmit
 }

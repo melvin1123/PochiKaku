@@ -76,11 +76,19 @@ export default function UploadArtModal({
         body: formData,
       });
 
-      const data = await res.json();
+const text = await res.text();
+console.log("Raw upload response:", text);
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Upload failed.");
-      }
+let data: any = {};
+try {
+  data = JSON.parse(text);
+} catch {
+  data = { error: text };
+}
+
+if (!res.ok) {
+  throw new Error(data?.error || `Upload failed with status ${res.status}`);
+}
 
       console.log("Post created:", data);
 

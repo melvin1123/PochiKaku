@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 async function main() {
   // Clean in child-to-parent order because of foreign keys
   await prisma.eventSubmission.deleteMany();
+  await prisma.eventParticipant.deleteMany();
   await prisma.eventReferenceImage.deleteMany();
   await prisma.like.deleteMany();
   await prisma.comment.deleteMany();
@@ -72,11 +73,10 @@ async function main() {
       title: "Sunrise by the lake",
       description: "Caught this just before the light changed.",
       imageUrl: "https://picsum.photos/seed/post1/1200/900",
+      imagePublicId: null,
       userId: alice.id,
       tags: {
-        create: [
-          { tagId: natureTag.id },
-        ],
+        create: [{ tagId: natureTag.id }],
       },
     },
   });
@@ -86,11 +86,10 @@ async function main() {
       title: "Street portrait",
       description: "One of my favorite frames this week.",
       imageUrl: "https://picsum.photos/seed/post2/1200/900",
+      imagePublicId: null,
       userId: bob.id,
       tags: {
-        create: [
-          { tagId: portraitTag.id },
-        ],
+        create: [{ tagId: portraitTag.id }],
       },
     },
   });
@@ -142,9 +141,26 @@ async function main() {
     },
   });
 
+  const aliceParticipant = await prisma.eventParticipant.create({
+    data: {
+      userId: alice.id,
+      eventId: event.id,
+      status: "joined",
+    },
+  });
+
+  const bobParticipant = await prisma.eventParticipant.create({
+    data: {
+      userId: bob.id,
+      eventId: event.id,
+      status: "joined",
+    },
+  });
+
   await prisma.eventSubmission.create({
     data: {
       caption: "My entry for the April challenge.",
+      participantId: bobParticipant.id,
       userId: bob.id,
       eventId: event.id,
       postId: post2.id,
@@ -156,7 +172,10 @@ async function main() {
     users: 3,
     posts: 2,
     tags: 3,
+    participants: 2,
     eventTitle: event.title,
+    aliceParticipantId: aliceParticipant.id,
+    bobParticipantId: bobParticipant.id,
   });
 }
 

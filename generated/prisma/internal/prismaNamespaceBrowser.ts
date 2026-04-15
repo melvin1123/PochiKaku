@@ -59,6 +59,7 @@ export const ModelName = {
   Tag: 'Tag',
   PostTag: 'PostTag',
   Event: 'Event',
+  EventParticipant: 'EventParticipant',
   EventReferenceImage: 'EventReferenceImage',
   EventSubmission: 'EventSubmission'
 } as const
@@ -167,6 +168,17 @@ export const EventScalarFieldEnum = {
 export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof EventScalarFieldEnum]
 
 
+export const EventParticipantScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  status: 'status',
+  userId: 'userId',
+  eventId: 'eventId'
+} as const
+
+export type EventParticipantScalarFieldEnum = (typeof EventParticipantScalarFieldEnum)[keyof typeof EventParticipantScalarFieldEnum]
+
+
 export const EventReferenceImageScalarFieldEnum = {
   id: 'id',
   imageUrl: 'imageUrl',
@@ -180,6 +192,7 @@ export const EventSubmissionScalarFieldEnum = {
   id: 'id',
   caption: 'caption',
   createdAt: 'createdAt',
+  participantId: 'participantId',
   userId: 'userId',
   eventId: 'eventId',
   postId: 'postId'
@@ -283,6 +296,16 @@ export const EventOrderByRelevanceFieldEnum = {
 export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
 
 
+export const EventParticipantOrderByRelevanceFieldEnum = {
+  id: 'id',
+  status: 'status',
+  userId: 'userId',
+  eventId: 'eventId'
+} as const
+
+export type EventParticipantOrderByRelevanceFieldEnum = (typeof EventParticipantOrderByRelevanceFieldEnum)[keyof typeof EventParticipantOrderByRelevanceFieldEnum]
+
+
 export const EventReferenceImageOrderByRelevanceFieldEnum = {
   id: 'id',
   imageUrl: 'imageUrl',
@@ -295,6 +318,7 @@ export type EventReferenceImageOrderByRelevanceFieldEnum = (typeof EventReferenc
 export const EventSubmissionOrderByRelevanceFieldEnum = {
   id: 'id',
   caption: 'caption',
+  participantId: 'participantId',
   userId: 'userId',
   eventId: 'eventId',
   postId: 'postId'
