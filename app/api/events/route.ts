@@ -142,29 +142,29 @@ export async function GET() {
     const user = await getCurrentUser();
 
     const events = await prisma.event.findMany({
-  include: {
-    referenceImages: true,
-    creator: {
-      select: {
-        id: true,
-        username: true,
-      },
-    },
-    participants: {
       include: {
-        user: {
+        referenceImages: true,
+        creator: {
           select: {
             id: true,
             username: true,
           },
         },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+              },
+            },
+          },
+        },
       },
-    },
-  },
-  orderBy: {
-    startDate: "asc",
-  },
-});
+      orderBy: {
+        startDate: "asc",
+      },
+    });
 
     let joinedEventIds: string[] = [];
 
@@ -313,6 +313,16 @@ export async function POST(request: Request) {
           select: {
             id: true,
             username: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+              },
+            },
           },
         },
       },
