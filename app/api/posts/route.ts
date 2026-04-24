@@ -119,4 +119,8 @@ export async function GET() {
       { status: 500 }
     );
   }
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes
