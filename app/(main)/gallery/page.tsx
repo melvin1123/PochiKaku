@@ -94,7 +94,10 @@ export default function GalleryPage() {
             {error}
           </div>
         ) : (
-          <GalleryGrid items={filteredItems} onSelect={setSelectedArt} />
+          <GalleryGrid
+            items={filteredItems}
+            onSelect={setSelectedArt}
+          />
         )}
       </section>
 

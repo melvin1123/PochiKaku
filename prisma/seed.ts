@@ -115,6 +115,7 @@ async function main() {
         description: "Caught this just before the light changed.",
         imageUrl: "https://picsum.photos/seed/post1/1200/1500",
         imagePublicId: null,
+        type: "post",
         userId: alice.id,
         tags: {
           create: [{ tagId: natureTag.id }, { tagId: contestTag.id }],
@@ -127,6 +128,7 @@ async function main() {
         description: "One of my favorite frames this week.",
         imageUrl: "https://picsum.photos/seed/post2/1200/900",
         imagePublicId: null,
+        type: "post",
         userId: bob.id,
         tags: {
           create: [{ tagId: portraitTag.id }, { tagId: streetTag.id }],
@@ -139,6 +141,7 @@ async function main() {
         description: "Rain, reflections, and night traffic.",
         imageUrl: "https://picsum.photos/seed/post3/1200/1600",
         imagePublicId: null,
+        type: "post",
         userId: dave.id,
         tags: {
           create: [{ tagId: streetTag.id }, { tagId: contestTag.id }],
@@ -151,6 +154,7 @@ async function main() {
         description: "A simple morning scene with soft shadows.",
         imageUrl: "https://picsum.photos/seed/post4/1200/1000",
         imagePublicId: null,
+        type: "post",
         userId: eve.id,
         tags: {
           create: [{ tagId: portraitTag.id }, { tagId: abstractTag.id }],

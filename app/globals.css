@@ -12,7 +12,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #faf9f7;
     --foreground: #ededed;
   }
 }
@@ -20,4 +20,18 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+.sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.texture-paper {
+  background-image: url('https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776990456/download_1_xyv9um.jpg');
+  background-repeat: repeat;
 }

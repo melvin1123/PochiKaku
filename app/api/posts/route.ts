@@ -30,6 +30,9 @@ export async function GET() {
     }
 
     const posts = await prisma.post.findMany({
+      where: {
+        type: "post",
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -66,6 +69,7 @@ export async function GET() {
         id: post.id,
         image: post.imageUrl,
         title: post.title || "Untitled",
+        description: post.description || "",
         artist: post.user.username,
         artistId: post.user.id,
         avatar: post.user.avatarUrl || "/avatar.jpg",

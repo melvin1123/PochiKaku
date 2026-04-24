@@ -20,6 +20,7 @@ CREATE TABLE `Post` (
     `description` VARCHAR(191) NULL,
     `imageUrl` VARCHAR(191) NOT NULL,
     `imagePublicId` VARCHAR(191) NULL,
+    `type` ENUM('post', 'event') NOT NULL DEFAULT 'post',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,

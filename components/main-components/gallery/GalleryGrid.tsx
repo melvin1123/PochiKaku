@@ -37,13 +37,7 @@ export default function GalleryGrid({
         Boolean(
           art &&
             typeof art.id === "string" &&
-            typeof art.title === "string" &&
-            typeof art.artist === "string" &&
-            typeof art.artistId === "string" &&
-            typeof art.avatar === "string" &&
-            typeof art.img === "string" &&
-            typeof art.description === "string" &&
-            typeof art.createdAt === "string"
+            typeof art.img === "string"
         )
     );
   }, [items]);
@@ -65,8 +59,8 @@ export default function GalleryGrid({
       {safeItems.map((art) => (
         <ArtCard
           key={art.id}
-          title={art.title}
-          artist={art.artist}
+          title={art.title || "Untitled"}
+          artist={art.artist || "Unknown"}
           img={art.img}
           onClick={onSelect ? () => onSelect(art) : undefined}
         />

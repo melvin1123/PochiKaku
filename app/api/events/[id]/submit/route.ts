@@ -175,6 +175,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           description,
           imageUrl: uploadedImage.imageUrl,
           imagePublicId: uploadedImage.publicId,
+          type: "event",
           userId: currentUser.id,
         },
       });

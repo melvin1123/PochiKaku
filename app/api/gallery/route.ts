@@ -6,6 +6,9 @@ export async function GET() {
     const cloudinaryBaseUrl = "https://res.cloudinary.com/dh8rpbwxq/";
 
     const posts = await prisma.post.findMany({
+      where: {
+        type: "post",
+      },
       orderBy: {
         createdAt: "desc",
       },

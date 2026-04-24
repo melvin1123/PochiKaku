@@ -144,6 +144,7 @@ export async function POST(req: Request) {
         description: description || null,
         imageUrl: uploaded.secure_url,
         imagePublicId: uploaded.public_id,
+        type: "post",
         userId: currentUser.id,
       },
       select: {
@@ -152,6 +153,7 @@ export async function POST(req: Request) {
         description: true,
         imageUrl: true,
         imagePublicId: true,
+        type: true, 
         createdAt: true,
         userId: true,
       },

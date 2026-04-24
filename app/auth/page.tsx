@@ -7,10 +7,10 @@ import { useRouter } from "next/navigation";
 import { loginSchema, registerSchema } from "@/lib/validation/auth";
 
 const floatingCards = [
-  { id: 1, title: "Golden Hour", img: "/featured/golden-hour.jpg" },
-  { id: 2, title: "Forest Dream", img: "/featured/forest-dream.jpg" },
-  { id: 3, title: "Ocean Light", img: "/featured/ocean-light.jpg" },
-  { id: 4, title: "Artwork Three", img: "/featured/lost-city.jpg" },
+  { id: 1, title: "Golden Hour", img: "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776907931/events/references/fljjylcsysvvaxnvvqtj.jpg" },
+  { id: 2, title: "Forest Dream", img: "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776907670/event-submissions/wcry7zrnxaknrvj09xsx.jpg" },
+  { id: 3, title: "Forgotten City", img: "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776233164/pochikomporo/posts/zmebgcmnobve7jfdhrc0.jpg" },
+  { id: 4, title: "Warm Coffee", img: "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776232543/pochikomporo/posts/g0n9mosrr1u6uqcdqx4i.jpg" },
 ];
 
 export default function AuthPage() {

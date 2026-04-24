@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { FaHeart, FaComment, FaEllipsisH, FaTimes } from "react-icons/fa";
+import { useEffect, useRef, useState } from "react";
+import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
+import Link from "next/link";
 
 type CommentItem = {
   id: string;
@@ -19,6 +20,7 @@ type Post = {
   id: string;
   image: string;
   title: string;
+  description?: string;
   artist: string;
   artistId: string;
   avatar: string;
@@ -41,24 +43,38 @@ export default function ArtCard({ post }: { post: Post }) {
   const [commentInput, setCommentInput] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setShowPostModal(false);
+        setShowMenu(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
       }
     };
 
     if (showPostModal) {
       document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleKeyDown);
     } else {
       document.body.style.overflow = "unset";
     }
 
+    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showPostModal]);
 
@@ -83,6 +99,7 @@ export default function ArtCard({ post }: { post: Post }) {
       }
 
       setIsFollowed(data.isFollowed);
+      setShowMenu(false);
     } catch (error) {
       console.error("Follow toggle error:", error);
     }
@@ -152,51 +169,79 @@ export default function ArtCard({ post }: { post: Post }) {
 
   return (
     <>
-      <div className="relative mx-auto w-[940px] max-w-full overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-lg">
+      <div className="relative mx-auto w-220 max-w-full overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-lg">
         <div className="flex items-start justify-between border-b border-[#e8dfd3] p-4">
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
-              <Image
-                src={post.avatar}
-                alt={post.artist}
-                fill
-                className="object-cover"
-                sizes="40px"
-              />
+              <Link href={`/profile/${post.artistId}`}>
+                <Image
+                  src={post.avatar}
+                  alt={post.artist}
+                  fill
+                  className="rounded-full object-cover"
+                />
+              </Link>
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#3e2c23]">
-                {post.artist}
-              </p>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/profile/${post.artistId}`}
+                  className="text-sm font-medium text-[#3e2c23] hover:underline"
+                >
+                  {post.artist}
+                </Link>
+
+                {isFollowed && (
+                  <span className="rounded-full bg-[#f3eee8] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#5a4636]">
+                    Following
+                  </span>
+                )}
+              </div>
+
               <p className="text-xs text-[#6b5a4d]">{post.time}</p>
             </div>
           </div>
 
-          <div className="ml-3 flex items-center gap-2">
-            <button
-              onClick={handleFollowToggle}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                isFollowed
-                  ? "border-[#5a4636] bg-[#5a4636] text-white"
-                  : "border-[#5a4636] bg-white text-[#5a4636] hover:bg-[#f7f3ee]"
-              }`}
-            >
-              {isFollowed ? "Following" : "Follow"}
-            </button>
-
+          <div className="relative ml-3" ref={menuRef}>
             <button
               type="button"
+              onClick={() => setShowMenu((prev) => !prev)}
               className="rounded-full p-2 text-[#5a4636] transition hover:bg-[#f3eee8]"
               aria-label="More options"
             >
               <FaEllipsisH size={15} />
             </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-[#e8dfd3] bg-white shadow-lg">
+                <button
+                  type="button"
+                  onClick={handleFollowToggle}
+                  className="block w-full px-4 py-3 text-left text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
+                >
+                  {isFollowed ? "Unfollow" : "Follow"}
+                </button>
+
+                <Link
+                  href={`/profile/${post.artistId}`}
+                  onClick={() => setShowMenu(false)}
+                  className="block px-4 py-3 text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
+                >
+                  View profile
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="px-4 pb-3 pt-3">
           <p className="text-base font-semibold text-[#3e2c23]">{post.title}</p>
+          {post.description && (
+            <p className="mt-1 text-sm leading-relaxed text-[#5a4636]">
+              {post.description}
+            </p>
+          )}
         </div>
 
         <div className="border-y border-[#e8dfd3] bg-[#111]">
@@ -206,7 +251,7 @@ export default function ArtCard({ post }: { post: Post }) {
             className="block w-full cursor-zoom-in"
             aria-label={`View full post of ${post.title}`}
           >
-            <div className="relative flex min-h-[320px] w-full items-center justify-center overflow-hidden bg-[#111]">
+            <div className="relative flex min-h-50 w-full items-center justify-center overflow-hidden bg-[#111]">
               <Image
                 src={post.image}
                 alt=""
@@ -259,7 +304,7 @@ export default function ArtCard({ post }: { post: Post }) {
 
       {showPostModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 p-2 sm:p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm p-2 sm:p-4"
           onClick={() => setShowPostModal(false)}
         >
           <div className="flex min-h-full items-center justify-center">
@@ -267,6 +312,15 @@ export default function ArtCard({ post }: { post: Post }) {
               className="relative flex h-[95vh] w-full max-w-7xl overflow-hidden rounded-3xl bg-white shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
+              <button
+                type="button"
+                onClick={() => setShowPostModal(false)}
+                className="absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-xl text-white transition hover:bg-black/80"
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+
               <div className="flex h-full w-full flex-col lg:flex-row">
                 <div className="relative flex min-h-[280px] flex-1 items-center justify-center bg-black lg:min-h-full">
                   <Image
@@ -295,23 +349,52 @@ export default function ArtCard({ post }: { post: Post }) {
                         </div>
 
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#3e2c23]">
-                            {post.artist}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-[#3e2c23]">
+                              {post.artist}
+                            </p>
+
+                            {isFollowed && (
+                              <span className="rounded-full bg-[#f3eee8] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#5a4636]">
+                                Following
+                              </span>
+                            )}
+                          </div>
+
                           <p className="text-xs text-[#6b5a4d]">{post.time}</p>
                         </div>
                       </div>
 
-                      <button
-                        onClick={handleFollowToggle}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                          isFollowed
-                            ? "border-[#5a4636] bg-[#5a4636] text-white"
-                            : "border-[#5a4636] bg-white text-[#5a4636] hover:bg-[#f7f3ee]"
-                        }`}
-                      >
-                        {isFollowed ? "Following" : "Follow"}
-                      </button>
+                      <div className="relative" ref={menuRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowMenu((prev) => !prev)}
+                          className="rounded-full p-2 text-[#5a4636] transition hover:bg-[#f3eee8]"
+                          aria-label="More options"
+                        >
+                          <FaEllipsisH size={15} />
+                        </button>
+
+                        {showMenu && (
+                          <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-[#e8dfd3] bg-white shadow-lg">
+                            <button
+                              type="button"
+                              onClick={handleFollowToggle}
+                              className="block w-full px-4 py-3 text-left text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
+                            >
+                              {isFollowed ? "Unfollow" : "Follow"}
+                            </button>
+
+                            <Link
+                              href={`/profile/${post.artistId}`}
+                              onClick={() => setShowMenu(false)}
+                              className="block px-4 py-3 text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
+                            >
+                              View profile
+                            </Link>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -319,6 +402,11 @@ export default function ArtCard({ post }: { post: Post }) {
                     <h3 className="text-lg font-bold text-[#3e2c23]">
                       {post.title}
                     </h3>
+                    {post.description && (
+                      <p className="mt-2 text-sm leading-relaxed text-[#5a4636]">
+                        {post.description}
+                      </p>
+                    )}
                   </div>
 
                   <div className="border-b border-[#e8dfd3] px-4 py-3">
@@ -330,9 +418,7 @@ export default function ArtCard({ post }: { post: Post }) {
                       >
                         <FaHeart
                           size={18}
-                          className={
-                            isLiked ? "text-red-500" : "text-[#3e2c23]"
-                          }
+                          className={isLiked ? "text-red-500" : "text-[#3e2c23]"}
                         />
                         <span>{likes} Likes</span>
                       </button>
@@ -358,7 +444,7 @@ export default function ArtCard({ post }: { post: Post }) {
                           >
                             <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
                               <Image
-                                src={comment.user.avatarUrl || "/avatar.jpg"}
+                                src={comment.user.avatarUrl}
                                 alt={comment.user.username}
                                 fill
                                 className="object-cover"
