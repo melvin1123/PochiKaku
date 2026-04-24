@@ -73,7 +73,7 @@ export default function GalleryPage() {
 
   return (
     <MainLayout>
-      <div className="mb-4 ml-8 mr-8 flex items-end justify-between">
+      <div className="mb-4 ml-8 mt-6 mr-8 flex items-end justify-between">
         <div>
           <h2 className="text-3xl font-bold">Gallery</h2>
           <p className="mt-1 text-[#5a4636]">
@@ -101,7 +101,14 @@ export default function GalleryPage() {
         )}
       </section>
 
-      <ArtModal art={selectedArt} onClose={() => setSelectedArt(null)} />
+      <ArtModal
+        art={selectedArt}
+        onClose={() => setSelectedArt(null)}
+        onChangeArt={(art) => setSelectedArt(art)} // 🔥 required
+        moreArtworks={galleryItems
+          .filter((a) => a.artistId === selectedArt?.artistId && a.id !== selectedArt?.id)
+          .slice(0, 6)}
+      />
     </MainLayout>
   );
 }

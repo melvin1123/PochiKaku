@@ -119,7 +119,7 @@ export default function ProfileView({
           <div className="mb-10 flex flex-col items-center gap-6 md:flex-row md:items-start">
             <div className="relative h-28 w-28">
               <Image
-                src={profile.avatarUrl}
+                src={profile.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
                 alt={profile.username}
                 fill
                 className="rounded-full border-4 border-[#d6c3a3] object-cover"
@@ -143,7 +143,7 @@ export default function ProfileView({
             </div>
 
             {profile.isOwnProfile ? (
-              <button className="rounded-lg bg-[#8b6b4f] px-5 py-2 text-white transition hover:bg-[#6f533d]">
+              <button className="rounded-lg bg-[#8b6b4f] mt-4 mr-3 px-5 py-2 text-white transition hover:bg-[#6f533d]">
                 Edit Profile
               </button>
             ) : (

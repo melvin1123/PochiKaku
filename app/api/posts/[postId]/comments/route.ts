@@ -27,7 +27,7 @@ export async function GET(_: Request, { params }: Params) {
       user: {
         id: comment.user.id,
         username: comment.user.username,
-        avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+        avatarUrl: comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
       },
     }));
 
@@ -93,7 +93,7 @@ export async function POST(req: Request, { params }: Params) {
         user: {
           id: comment.user.id,
           username: comment.user.username,
-          avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+          avatarUrl: comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
         },
       },
       comments: commentCount,

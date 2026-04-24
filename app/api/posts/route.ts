@@ -72,7 +72,7 @@ export async function GET() {
         description: post.description || "",
         artist: post.user.username,
         artistId: post.user.id,
-        avatar: post.user.avatarUrl || "/avatar.jpg",
+        avatar: post.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
         likes: post.likes.length,
         comments: post.comments.length,
         time: formatTimeAgo(post.createdAt),
@@ -88,7 +88,7 @@ export async function GET() {
           user: {
             id: comment.user.id,
             username: comment.user.username,
-            avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+            avatarUrl: comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
           },
         })),
       }));

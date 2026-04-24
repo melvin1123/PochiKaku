@@ -13,7 +13,18 @@ export type GalleryItem = {
   img: string;
   description: string;
   createdAt: string;
-};
+  likes: number;
+  comments: {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: {
+      id: string;
+      username: string;
+      avatarUrl: string;
+    };
+  }[];
+}; // ✅ THIS WAS MISSING
 
 type GalleryGridProps = {
   items?: GalleryItem[];

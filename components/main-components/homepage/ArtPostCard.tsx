@@ -444,7 +444,7 @@ export default function ArtCard({ post }: { post: Post }) {
                           >
                             <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
                               <Image
-                                src={comment.user.avatarUrl}
+                                src={comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
                                 alt={comment.user.username}
                                 fill
                                 className="object-cover"
