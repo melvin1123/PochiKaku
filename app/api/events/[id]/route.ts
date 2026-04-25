@@ -138,14 +138,18 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       joined: hasJoined,
       canSubmit: hasJoined,
       hasSubmitted,
-      participants: event.participants.map((participant) => ({
-        id: participant.user.id,
-        username: participant.user.username,
-      })),
-      referenceImages: event.referenceImages.map((image) => ({
-        id: image.id,
-        imageUrl: image.imageUrl,
-      })),
+      participants: event.participants.map(
+        (participant: { user: { id: string; username: string } }) => ({
+          id: participant.user.id,
+          username: participant.user.username,
+        }),
+      ),
+      referenceImages: event.referenceImages.map(
+        (image: { id: string; imageUrl: string }) => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+        }),
+      ),
       submissions: event.submissions.map((submission) => ({
         id: submission.id,
         caption: submission.caption,
