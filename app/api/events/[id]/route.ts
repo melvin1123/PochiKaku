@@ -8,9 +8,64 @@ type RouteContext = {
   }>;
 };
 
+type EventStatus = "Upcoming" | "Ongoing" | "Ended";
+
+type EventParticipantWithUser = {
+  user: {
+    id: string;
+    username: string;
+  };
+};
+
+type EventReferenceImage = {
+  id: string;
+  imageUrl: string;
+};
+
+type EventSubmissionWithDetails = {
+  id: string;
+  caption: string | null;
+  createdAt: Date;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+  };
+  post: {
+    id: string;
+    title: string | null;
+    description: string | null;
+    imageUrl: string;
+    createdAt: Date;
+    likes: {
+      userId: string;
+    }[];
+    comments: {
+      id: string;
+      content: string;
+      createdAt: Date;
+      user: {
+        id: string;
+        username: string;
+        avatarUrl: string | null;
+      };
+    }[];
+  };
+};
+
+function getEventStatus(startDate: Date, deadline: Date): EventStatus {
+  const now = new Date();
+
+  if (now > deadline) return "Ended";
+  if (now >= startDate && now <= deadline) return "Ongoing";
+
+  return "Upcoming";
+}
+
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const currentUser = await getCurrentUserFromToken();
+    const currentUser = await getCurrentUserFromToken().catch(() => null);
     const { id } = await context.params;
 
     if (!id) {
@@ -90,27 +145,21 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const now = new Date();
+    const participants = event.participants as EventParticipantWithUser[];
+    const referenceImages = event.referenceImages as EventReferenceImage[];
+    const submissions = event.submissions as EventSubmissionWithDetails[];
 
-    let status: "Upcoming" | "Ongoing" | "Ended" = "Upcoming";
-
-    if (now > event.deadline) {
-      status = "Ended";
-    } else if (now >= event.startDate && now <= event.deadline) {
-      status = "Ongoing";
-    }
+    const status = getEventStatus(event.startDate, event.deadline);
 
     const hasJoined = currentUser
-      ? event.participants.some(
-          (participant: { user: { id: string } }) =>
-            participant.user.id === currentUser.id,
+      ? participants.some(
+          (participant) => participant.user.id === currentUser.id,
         )
       : false;
 
     const hasSubmitted = currentUser
-      ? event.submissions.some(
-          (submission: { userId: string }) =>
-            submission.userId === currentUser.id,
+      ? submissions.some(
+          (submission) => submission.userId === currentUser.id,
         )
       : false;
 
@@ -119,7 +168,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       title: event.title,
       description: event.description,
       img: event.backdropImage,
-      date: new Date(event.startDate).toLocaleDateString("en-US", {
+      date: event.startDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -138,26 +187,22 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       joined: hasJoined,
       canSubmit: hasJoined,
       hasSubmitted,
-      participants: event.participants.map(
-        (participant: { user: { id: string; username: string } }) => ({
-          id: participant.user.id,
-          username: participant.user.username,
-        }),
-      ),
-      referenceImages: event.referenceImages.map(
-        (image: { id: string; imageUrl: string }) => ({
-          id: image.id,
-          imageUrl: image.imageUrl,
-        }),
-      ),
-      submissions: event.submissions.map((submission) => ({
+      participants: participants.map((participant) => ({
+        id: participant.user.id,
+        username: participant.user.username,
+      })),
+      referenceImages: referenceImages.map((image) => ({
+        id: image.id,
+        imageUrl: image.imageUrl,
+      })),
+      submissions: submissions.map((submission) => ({
         id: submission.id,
         caption: submission.caption,
         createdAt: submission.createdAt.toISOString(),
         user: {
           id: submission.user.id,
           username: submission.user.username,
-          avatarUrl: submission.user.avatarUrl || "/avatar.jpg",
+          avatarUrl: submission.user.avatarUrl ?? "/avatar.jpg",
         },
         post: {
           id: submission.post.id,
@@ -179,7 +224,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
             user: {
               id: comment.user.id,
               username: comment.user.username,
-              avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+              avatarUrl: comment.user.avatarUrl ?? "/avatar.jpg",
             },
           })),
         },
@@ -187,7 +232,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     };
 
     return NextResponse.json(formattedEvent, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET_EVENT_BY_ID_ERROR", error);
 
     return NextResponse.json(
