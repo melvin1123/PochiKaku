@@ -20,6 +20,7 @@ type EventParticipantResponse = {
   createdAt?: Date;
 };
 
+
 export async function POST(_req: Request, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
