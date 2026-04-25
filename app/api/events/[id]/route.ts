@@ -109,7 +109,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     const hasSubmitted = currentUser
       ? event.submissions.some(
-          (submission) => submission.userId === currentUser.id,
+          (submission: { userId: string }) =>
+            submission.userId === currentUser.id,
         )
       : false;
 
