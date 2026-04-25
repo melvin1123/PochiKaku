@@ -137,10 +137,12 @@ const hasSubmitted = currentUser
     canSubmit: hasJoined,
     hasSubmitted,
 
-    participants: event.participants.map((participant) => ({
-      id: participant.user.id,
-      username: participant.user.username,
-    })),
+    participants: event.participants.map(
+      (participant: { user: { id: string; username: string } }) => ({
+        id: participant.user.id,
+        username: participant.user.username,
+      }),
+    ),
 
     referenceImages: event.referenceImages.map((image) => ({
       id: image.id,
