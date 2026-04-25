@@ -127,7 +127,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-3 px-5 pb-4 pt-1">
             <div className="relative h-10 w-10">
               <Image
-                src={user?.avatarUrl || "/avatar.jpg"}
+                src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
                 alt="avatar"
                 fill
                 className="rounded-full object-cover"

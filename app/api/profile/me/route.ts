@@ -67,7 +67,7 @@ export async function GET() {
         createdAt: post.createdAt.toISOString(),
         artist: user.username,
         artistId: user.id,
-        avatar: user.avatarUrl || "/avatar.jpg",
+        avatar: user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
         description: post.description || "",
       }));
 
@@ -76,7 +76,7 @@ export async function GET() {
         id: user.id,
         username: user.username,
         email: user.email,
-        avatarUrl: user.avatarUrl || "/avatar.jpg",
+        avatarUrl: user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
         bio: user.bio || "",
         isOwnProfile: true,
         isFollowed: false,

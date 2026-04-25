@@ -6,9 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
 
 type PageProps = {
-  params: Promise<{
+  params: {
     eventId: string;
-  }>;
+  };
 };
 
 async function getEventDetails(eventId: string) {
@@ -81,23 +81,29 @@ async function getEventDetails(eventId: string) {
 
   const now = new Date();
 
+  // ✅ SAFE DATE HANDLING
+  const startDate = event.startDate;
+  const deadline = event.deadline;
+
   let status: "Upcoming" | "Ongoing" | "Ended" = "Upcoming";
 
-  if (now > event.deadline) {
+  if (deadline && now > deadline) {
     status = "Ended";
-  } else if (now >= event.startDate && now <= event.deadline) {
+  } else if (startDate && deadline && now >= startDate && now <= deadline) {
     status = "Ongoing";
   }
 
+  // ✅ SAFE participant typing
   const hasJoined = currentUser
     ? event.participants.some(
-        (participant) => participant.user.id === currentUser.id,
+        (participant) => participant.user.id === currentUser.id
       )
     : false;
 
+  // ✅ SAFE submission typing
   const hasSubmitted = currentUser
     ? event.submissions.some(
-        (submission) => submission.userId === currentUser.id,
+        (submission) => submission.userId === currentUser.id
       )
     : false;
 
@@ -105,34 +111,41 @@ async function getEventDetails(eventId: string) {
     id: event.id,
     title: event.title,
     description: event.description,
-    img: event.backdropImage,
-    date: new Date(event.startDate).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }),
+    img: event.backdropImage || "/placeholder.jpg", // ✅ fallback
+    date: startDate
+      ? new Date(startDate).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "TBA",
     status,
-    startDate: event.startDate.toISOString(),
-    deadline: event.deadline.toISOString(),
+    startDate: startDate?.toISOString() ?? null,
+    deadline: deadline?.toISOString() ?? null,
     createdAt: event.createdAt.toISOString(),
     createdBy: event.createdBy,
+
     creator: event.creator
       ? {
           id: event.creator.id,
           username: event.creator.username,
         }
       : null,
+
     joined: hasJoined,
     canSubmit: hasJoined,
     hasSubmitted,
+
     participants: event.participants.map((participant) => ({
       id: participant.user.id,
       username: participant.user.username,
     })),
+
     referenceImages: event.referenceImages.map((image) => ({
       id: image.id,
       imageUrl: image.imageUrl,
     })),
+
     submissions: event.submissions.map((submission) => ({
       id: submission.id,
       caption: submission.caption,
@@ -151,7 +164,9 @@ async function getEventDetails(eventId: string) {
         likesCount: submission.post.likes.length,
         commentsCount: submission.post.comments.length,
         isLiked: currentUser
-          ? submission.post.likes.some((like) => like.userId === currentUser.id)
+          ? submission.post.likes.some(
+              (like) => like.userId === currentUser.id
+            )
           : false,
         comments: submission.post.comments.map((comment) => ({
           id: comment.id,
@@ -169,7 +184,8 @@ async function getEventDetails(eventId: string) {
 }
 
 export default async function EventDetailsPage({ params }: PageProps) {
-  const { eventId } = await params;
+  const { eventId } = params;
+
   const event = await getEventDetails(eventId);
 
   if (!event) {

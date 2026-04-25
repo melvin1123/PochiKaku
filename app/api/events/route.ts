@@ -277,10 +277,10 @@ export async function POST(request: Request) {
       );
     }
 
-    for (let index = 0; index < referenceFiles.length; index += 1) {
+    for (const [index, file] of referenceFiles.entries()) {
       const validationError = validateImageFile(
-        referenceFiles[index],
-        `Reference image ${index + 1}`,
+        file,
+        `Reference image ${index + 1}`
       );
 
       if (validationError) {

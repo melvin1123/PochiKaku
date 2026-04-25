@@ -210,120 +210,18 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
 export const NullsOrder = {
   first: 'first',
   last: 'last'
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
-export const UserOrderByRelevanceFieldEnum = {
-  id: 'id',
-  email: 'email',
-  username: 'username',
-  password: 'password',
-  avatarUrl: 'avatarUrl',
-  bio: 'bio'
-} as const
-
-export type UserOrderByRelevanceFieldEnum = (typeof UserOrderByRelevanceFieldEnum)[keyof typeof UserOrderByRelevanceFieldEnum]
-
-
-export const PostOrderByRelevanceFieldEnum = {
-  id: 'id',
-  title: 'title',
-  description: 'description',
-  imageUrl: 'imageUrl',
-  imagePublicId: 'imagePublicId',
-  userId: 'userId'
-} as const
-
-export type PostOrderByRelevanceFieldEnum = (typeof PostOrderByRelevanceFieldEnum)[keyof typeof PostOrderByRelevanceFieldEnum]
-
-
-export const CommentOrderByRelevanceFieldEnum = {
-  id: 'id',
-  content: 'content',
-  userId: 'userId',
-  postId: 'postId'
-} as const
-
-export type CommentOrderByRelevanceFieldEnum = (typeof CommentOrderByRelevanceFieldEnum)[keyof typeof CommentOrderByRelevanceFieldEnum]
-
-
-export const LikeOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  postId: 'postId'
-} as const
-
-export type LikeOrderByRelevanceFieldEnum = (typeof LikeOrderByRelevanceFieldEnum)[keyof typeof LikeOrderByRelevanceFieldEnum]
-
-
-export const FollowOrderByRelevanceFieldEnum = {
-  id: 'id',
-  followerId: 'followerId',
-  followingId: 'followingId'
-} as const
-
-export type FollowOrderByRelevanceFieldEnum = (typeof FollowOrderByRelevanceFieldEnum)[keyof typeof FollowOrderByRelevanceFieldEnum]
-
-
-export const TagOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name'
-} as const
-
-export type TagOrderByRelevanceFieldEnum = (typeof TagOrderByRelevanceFieldEnum)[keyof typeof TagOrderByRelevanceFieldEnum]
-
-
-export const PostTagOrderByRelevanceFieldEnum = {
-  postId: 'postId',
-  tagId: 'tagId'
-} as const
-
-export type PostTagOrderByRelevanceFieldEnum = (typeof PostTagOrderByRelevanceFieldEnum)[keyof typeof PostTagOrderByRelevanceFieldEnum]
-
-
-export const EventOrderByRelevanceFieldEnum = {
-  id: 'id',
-  title: 'title',
-  description: 'description',
-  backdropImage: 'backdropImage',
-  createdBy: 'createdBy'
-} as const
-
-export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
-
-
-export const EventParticipantOrderByRelevanceFieldEnum = {
-  id: 'id',
-  status: 'status',
-  userId: 'userId',
-  eventId: 'eventId'
-} as const
-
-export type EventParticipantOrderByRelevanceFieldEnum = (typeof EventParticipantOrderByRelevanceFieldEnum)[keyof typeof EventParticipantOrderByRelevanceFieldEnum]
-
-
-export const EventReferenceImageOrderByRelevanceFieldEnum = {
-  id: 'id',
-  imageUrl: 'imageUrl',
-  eventId: 'eventId'
-} as const
-
-export type EventReferenceImageOrderByRelevanceFieldEnum = (typeof EventReferenceImageOrderByRelevanceFieldEnum)[keyof typeof EventReferenceImageOrderByRelevanceFieldEnum]
-
-
-export const EventSubmissionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  caption: 'caption',
-  participantId: 'participantId',
-  userId: 'userId',
-  eventId: 'eventId',
-  postId: 'postId'
-} as const
-
-export type EventSubmissionOrderByRelevanceFieldEnum = (typeof EventSubmissionOrderByRelevanceFieldEnum)[keyof typeof EventSubmissionOrderByRelevanceFieldEnum]
 

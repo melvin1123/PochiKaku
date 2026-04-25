@@ -20,6 +20,21 @@ export async function GET() {
             avatarUrl: true,
           },
         },
+        likes: true,
+        comments: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -34,6 +49,17 @@ export async function GET() {
         img: post.imageUrl,
         description: post.description || "",
         createdAt: post.createdAt.toISOString(),
+        likes: post.likes.length,
+        comments: post.comments.map((comment) => ({
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.createdAt.toISOString(),
+          user: {
+            id: comment.user.id,
+            username: comment.user.username,
+            avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
+          },
+        })),
       }));
 
     return NextResponse.json(galleryItems, { status: 200 });
@@ -45,7 +71,7 @@ export async function GET() {
         error:
           error instanceof Error ? error.message : "Failed to fetch gallery",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
