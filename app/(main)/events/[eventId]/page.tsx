@@ -151,28 +151,67 @@ const hasSubmitted = currentUser
       }),
     ),
 
-    submissions: event.submissions.map((submission) => ({
-      id: submission.id,
-      caption: submission.caption,
-      createdAt: submission.createdAt.toISOString(),
-      user: {
-        id: submission.user.id,
-        username: submission.user.username,
-        avatarUrl: submission.user.avatarUrl || "/avatar.jpg",
-      },
-      post: {
-        id: submission.post.id,
-        title: submission.post.title,
-        description: submission.post.description,
-        imageUrl: submission.post.imageUrl,
-        likesCount: submission.post.likes.length,
-        commentsCount: submission.post.comments.length,
-        isLiked: currentUser
-          ? submission.post.likes.some(
-              (like) => like.userId === currentUser.id,
-            )
-          : false,
-        comments: submission.post.comments.map((comment) => ({
+    submissions: event.submissions.map(
+  (submission: {
+    id: string;
+    caption: string | null;
+    createdAt: Date;
+    userId: string;
+    user: {
+      id: string;
+      username: string;
+      avatarUrl: string | null;
+    };
+    post: {
+      id: string;
+      title: string | null;
+      description: string | null;
+      imageUrl: string;
+      createdAt: Date;
+      likes: { userId: string }[];
+      comments: {
+        id: string;
+        content: string;
+        createdAt: Date;
+        user: {
+          id: string;
+          username: string;
+          avatarUrl: string | null;
+        };
+      }[];
+    };
+  }) => ({
+    id: submission.id,
+    caption: submission.caption,
+    createdAt: submission.createdAt.toISOString(),
+    user: {
+      id: submission.user.id,
+      username: submission.user.username,
+      avatarUrl: submission.user.avatarUrl || "/avatar.jpg",
+    },
+    post: {
+      id: submission.post.id,
+      title: submission.post.title,
+      description: submission.post.description,
+      imageUrl: submission.post.imageUrl,
+      likesCount: submission.post.likes.length,
+      commentsCount: submission.post.comments.length,
+      isLiked: currentUser
+        ? submission.post.likes.some(
+            (like: { userId: string }) => like.userId === currentUser.id,
+          )
+        : false,
+      comments: submission.post.comments.map(
+        (comment: {
+          id: string;
+          content: string;
+          createdAt: Date;
+          user: {
+            id: string;
+            username: string;
+            avatarUrl: string | null;
+          };
+        }) => ({
           id: comment.id,
           content: comment.content,
           createdAt: comment.createdAt.toISOString(),
@@ -181,9 +220,11 @@ const hasSubmitted = currentUser
             username: comment.user.username,
             avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
           },
-        })),
-      },
-    })),
+        }),
+      ),
+    },
+  }),
+),
   };
 }
 
