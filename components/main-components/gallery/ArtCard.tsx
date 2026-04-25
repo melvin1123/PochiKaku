@@ -1,31 +1,44 @@
 "use client";
+
+import Image from "next/image";
 import { FaHeart } from "react-icons/fa";
 
-interface ArtCardProps {
+type ArtCardProps = {
   title: string;
   artist: string;
   img: string;
   onClick?: () => void;
-}
+};
 
-export default function ArtCard({ title, artist, img, onClick }: ArtCardProps) {
+export default function ArtCard({
+  title,
+  artist,
+  img,
+  onClick,
+}: ArtCardProps) {
   return (
-    <div
-      className="group relative bg-[#e8dfd3] rounded-lg overflow-hidden shadow hover:shadow-lg cursor-pointer transition transform hover:scale-105"
+    <button
+      type="button"
       onClick={onClick}
+      disabled={!onClick}
+      className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg bg-[#e8dfd3] shadow transition hover:scale-105 hover:shadow-lg disabled:cursor-default"
+      aria-label={`View ${title} by ${artist}`}
     >
-      <img src={img} alt={title} className="object-cover" />
+      <Image
+        src={img}
+        alt={title}
+        fill
+        className="object-cover"
+        sizes="(max-width: 768px) 50vw, 33vw"
+      />
 
-      {/* Heart Icon */}
-      <div className="absolute top-2 right-2 bg-white/80 p-2 rounded-full">
+      <div className="absolute right-2 top-2 rounded-full bg-white/80 p-2">
         <FaHeart className="text-[#5a4636]" />
       </div>
 
-      {/* Hover Overlay */}
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-        <span className="text-white font-semibold">View</span>
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+        <span className="font-semibold text-white">View</span>
       </div>
-
-    </div>
+    </button>
   );
 }

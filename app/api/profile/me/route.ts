@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
 
-function formatTimeAgo(date: Date) {
+function formatTimeAgo(date: Date): string {
   const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffMs = now.getTime() - date.getTime();
 
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -15,24 +15,27 @@ function formatTimeAgo(date: Date) {
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
 
-  return new Date(date).toLocaleDateString();
+  return date.toLocaleDateString();
 }
+
+const DEFAULT_AVATAR =
+  "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg";
 
 export async function GET() {
   try {
     const currentUser = await getCurrentUserFromToken();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { id: currentUser.id },
       include: {
         posts: {
+          where: {
+            type: "post",
+          },
           orderBy: {
             createdAt: "desc",
           },
@@ -47,19 +50,14 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const cloudinaryBaseUrl = "https://res.cloudinary.com/dh8rpbwxq/";
-
     const artworks = user.posts
-      .filter((post) => post.imageUrl.startsWith(cloudinaryBaseUrl))
+      .filter((post) => Boolean(post.imageUrl))
       .map((post) => ({
         id: post.id,
-        title: post.title || "Untitled",
+        title: post.title ?? "Untitled",
         imageUrl: post.imageUrl,
         likes: post.likes.length,
         comments: post.comments.length,
@@ -67,8 +65,8 @@ export async function GET() {
         createdAt: post.createdAt.toISOString(),
         artist: user.username,
         artistId: user.id,
-        avatar: user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
-        description: post.description || "",
+        avatar: user.avatarUrl ?? DEFAULT_AVATAR,
+        description: post.description ?? "",
       }));
 
     return NextResponse.json({
@@ -76,8 +74,8 @@ export async function GET() {
         id: user.id,
         username: user.username,
         email: user.email,
-        avatarUrl: user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
-        bio: user.bio || "",
+        avatarUrl: user.avatarUrl ?? DEFAULT_AVATAR,
+        bio: user.bio ?? "",
         isOwnProfile: true,
         isFollowed: false,
       },
@@ -88,7 +86,7 @@ export async function GET() {
       },
       artworks,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET /api/profile/me error:", error);
 
     return NextResponse.json(
@@ -96,7 +94,7 @@ export async function GET() {
         error:
           error instanceof Error ? error.message : "Failed to load profile",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

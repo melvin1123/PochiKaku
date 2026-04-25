@@ -3,50 +3,23 @@
 import { useState } from "react";
 import EventSubmissionCard from "./EventSubmissionCard";
 import EventSubmissionDetailsModal from "./EventSubmissionDetailsModal";
+import type { EventSubmission } from "@/app/types/eventSubmission";
 
-type CommentItem = {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    avatarUrl: string;
-  };
-};
-
-type Submission = {
-  id: string;
-  caption: string | null;
-  createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    avatarUrl?: string | null;
-  };
-  post: {
-    id: string;
-    imageUrl: string;
-    title: string | null;
-    description: string | null;
-    likesCount: number;
-    commentsCount: number;
-    isLiked?: boolean;
-    comments: CommentItem[];
-  };
+type EventSubmissionsSectionProps = {
+  submissions: EventSubmission[];
 };
 
 export default function EventSubmissionsSection({
   submissions,
-}: {
-  submissions: Submission[];
-}) {
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+}: EventSubmissionsSectionProps) {
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<EventSubmission | null>(null);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-[#3e2c23]">Submissions</h2>
+
         <span className="text-sm text-[#8a6f5a]">
           {submissions.length} entries
         </span>
@@ -71,7 +44,7 @@ export default function EventSubmissionsSection({
 
       <EventSubmissionDetailsModal
         submission={selectedSubmission}
-        isOpen={Boolean(selectedSubmission)}
+        isOpen={selectedSubmission !== null}
         onClose={() => setSelectedSubmission(null)}
       />
     </div>

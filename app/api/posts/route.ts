@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserFromToken }  from "@/lib/auth/auth";
+import { getCurrentUserFromToken } from "@/lib/auth/auth";
 
-function formatTimeAgo(date: Date) {
+function formatTimeAgo(date: Date): string {
   const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffMs = now.getTime() - date.getTime();
 
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -15,18 +15,18 @@ function formatTimeAgo(date: Date) {
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
 
-  return new Date(date).toLocaleDateString();
+  return date.toLocaleDateString();
 }
+
+const DEFAULT_AVATAR =
+  "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg";
 
 export async function GET() {
   try {
     const currentUser = await getCurrentUserFromToken();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const posts = await prisma.post.findMany({
@@ -50,8 +50,6 @@ export async function GET() {
       },
     });
 
-    const cloudinaryBaseUrl = "https://res.cloudinary.com/dh8rpbwxq/";
-
     const following = await prisma.follow.findMany({
       where: {
         followerId: currentUser.id,
@@ -61,26 +59,26 @@ export async function GET() {
       },
     });
 
-    const followingIds = new Set(following.map((f) => f.followingId));
+    const followingIds = new Set(following.map((follow) => follow.followingId));
 
     const formattedPosts = posts
-      .filter((post) => post.imageUrl.startsWith(cloudinaryBaseUrl))
+      .filter((post) => Boolean(post.imageUrl))
       .map((post) => ({
         id: post.id,
         image: post.imageUrl,
-        title: post.title || "Untitled",
-        description: post.description || "",
+        title: post.title ?? "Untitled",
+        description: post.description ?? "",
         artist: post.user.username,
         artistId: post.user.id,
-        avatar: post.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
+        avatar: post.user.avatarUrl ?? DEFAULT_AVATAR,
         likes: post.likes.length,
         comments: post.comments.length,
         time: formatTimeAgo(post.createdAt),
+        userId: post.userId,
+        createdAt: post.createdAt.toISOString(),
         isLiked: post.likes.some((like) => like.userId === currentUser.id),
         isFollowed:
-          post.user.id === currentUser.id
-            ? true
-            : followingIds.has(post.user.id),
+          post.user.id === currentUser.id || followingIds.has(post.user.id),
         commentsPreview: post.comments.map((comment) => ({
           id: comment.id,
           content: comment.content,
@@ -88,7 +86,7 @@ export async function GET() {
           user: {
             id: comment.user.id,
             username: comment.user.username,
-            avatarUrl: comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg",
+            avatarUrl: comment.user.avatarUrl ?? DEFAULT_AVATAR,
           },
         })),
       }));
@@ -107,16 +105,17 @@ export async function GET() {
         recentUploads,
         posts: formattedPosts,
       },
-      { status: 200 }
+      { status: 200 },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET /api/posts error:", error);
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to fetch posts",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch posts",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

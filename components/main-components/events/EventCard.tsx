@@ -1,24 +1,21 @@
 "use client";
 
 import Image from "next/image";
+import type { KeyboardEvent, MouseEvent } from "react";
+import type { EventParticipant, EventStatus } from "@/app/types/event";
 
-interface EventParticipant {
-  id: string;
-  username: string;
-}
-
-interface EventCardProps {
+type EventCardProps = {
   title: string;
   description: string;
   img: string;
   date: string;
-  status: "Ongoing" | "Upcoming" | "Ended";
+  status: EventStatus;
   participants?: EventParticipant[];
   onView?: () => void;
   onJoin?: () => void;
   joining?: boolean;
   joined?: boolean;
-}
+};
 
 export default function EventCard({
   title,
@@ -45,29 +42,32 @@ export default function EventCard({
   const visibleParticipants = participants.slice(0, 4);
   const remainingCount = participants.length - visibleParticipants.length;
 
-  function handleCardClick() {
+  const handleCardClick = (): void => {
     onView?.();
-  }
+  };
 
-  function handleCardKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
       onView?.();
     }
-  }
+  };
 
-  function handleJoinClick(e: React.MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
+  const handleJoinClick = (event: MouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
+
     if (isJoinDisabled) return;
-    onJoin?.();
-  }
 
-  function getButtonText() {
-    if (joining) return "Joining...";
-    if (joined) return "Already Joined";
-    if (isEnded) return "Event Ended";
-    return "Join Event";
-  }
+    onJoin?.();
+  };
+
+  const buttonText = joining
+    ? "Joining..."
+    : joined
+      ? "Already Joined"
+      : isEnded
+        ? "Event Ended"
+        : "Join Event";
 
   return (
     <div
@@ -126,11 +126,11 @@ export default function EventCard({
                   </div>
                 ))}
 
-                {remainingCount > 0 ? (
+                {remainingCount > 0 && (
                   <div className="-ml-2 flex h-8 min-w-8 items-center justify-center rounded-full border-2 border-[#e8dfd3] bg-[#c9b39c] px-1.5 text-[11px] font-semibold text-[#3e2c23] shadow-sm">
                     +{remainingCount}
                   </div>
-                ) : null}
+                )}
               </div>
             ) : (
               <span className="text-xs text-[#8a6f5a]">None</span>
@@ -148,7 +148,7 @@ export default function EventCard({
               : "bg-[#3e2c23] text-[#f5efe6] hover:bg-[#5a4636]"
           }`}
         >
-          {getButtonText()}
+          {buttonText}
         </button>
       </div>
     </div>

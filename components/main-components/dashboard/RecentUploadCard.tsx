@@ -1,15 +1,9 @@
 import Image from "next/image";
 import { FaHeart, FaComment, FaPlus } from "react-icons/fa";
-
-type Post = {
-  image: string;
-  title: string;
-  likes: number;
-  comments: number;
-};
+import type { PostItem } from "@/app/types/post";
 
 type RecentUploadCardProps = {
-  post?: Post;
+  post?: PostItem;
   isEmptyCard?: boolean;
   onAddClick?: () => void;
 };
@@ -24,7 +18,8 @@ export default function RecentUploadCard({
       <button
         type="button"
         onClick={onAddClick}
-        className="flex min-h-70 w-55 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#d7cab9] bg-[#f7f4f0] text-[#5a4636] shadow-md transition hover:border-[#8b6b4f] hover:bg-[#f3ede6] hover:shadow-lg"
+        disabled={!onAddClick}
+        className="flex min-h-70 w-55 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#d7cab9] bg-[#f7f4f0] text-[#5a4636] shadow-md transition hover:border-[#8b6b4f] hover:bg-[#f3ede6] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#e8dfd3]">
           <FaPlus size={24} />
@@ -44,7 +39,7 @@ export default function RecentUploadCard({
   if (!post) return null;
 
   return (
-    <div className="w-60 overflow-hidden rounded-2xl bg-[#f7f4f0] shadow-md hover:shadow-lg flex flex-col">
+    <div className="flex w-60 flex-col overflow-hidden rounded-2xl bg-[#f7f4f0] shadow-md hover:shadow-lg">
       <div className="flex-none border-b border-[#e8dfd3] p-3">
         <p className="text-base font-semibold text-[#3e2c23]">{post.title}</p>
       </div>
@@ -55,6 +50,7 @@ export default function RecentUploadCard({
           alt={post.title}
           fill
           className="object-contain"
+          sizes="240px"
         />
       </div>
 
@@ -63,6 +59,7 @@ export default function RecentUploadCard({
           <span className="flex items-center gap-1">
             <FaHeart size={18} /> {post.likes} Likes
           </span>
+
           <span className="flex items-center gap-1">
             <FaComment size={18} /> {post.comments} Comments
           </span>

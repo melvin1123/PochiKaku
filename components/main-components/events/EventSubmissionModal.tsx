@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEventSubmissionModal } from "@/app/hooks/events/useEventSubmissionModal";
+import type { EventSubmission } from "@/app/types/eventSubmission";
+
+type EventSubmissionDetailsModalProps = {
+  submission: EventSubmission | null;
+  isOpen: boolean;
+  onClose: () => void;
+};
 
 type EventSubmissionModalProps = {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
-  onSubmitted?: (submission: any) => void;
+  onSubmitted?: (submission: EventSubmission) => void;
 };
 
 export default function EventSubmissionModal({
@@ -15,78 +22,25 @@ export default function EventSubmissionModal({
   eventId,
   onSubmitted,
 }: EventSubmissionModalProps) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [caption, setCaption] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "auto";
-    };
-  }, [isOpen, onClose]);
+  const {
+    title,
+    description,
+    caption,
+    isSubmitting,
+    setTitle,
+    setDescription,
+    setCaption,
+    handleFileChange,
+    handleModalClick,
+    handleSubmit,
+  } = useEventSubmissionModal({
+    isOpen,
+    onClose,
+    eventId,
+    onSubmitted,
+  });
 
   if (!isOpen) return null;
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setCaption("");
-    setImageFile(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!imageFile) {
-      alert("Please select an image.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("caption", caption);
-      formData.append("image", imageFile);
-
-      const res = await fetch(`/api/events/${eventId}/submit`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to submit artwork.");
-      }
-
-      onSubmitted?.(data.submission);
-      resetForm();
-      onClose();
-    } catch (error) {
-      console.error("Submit artwork error:", error);
-      alert(
-        error instanceof Error ? error.message : "Failed to submit artwork.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div
@@ -96,7 +50,7 @@ export default function EventSubmissionModal({
       <div className="flex min-h-dvh items-center justify-center p-3 sm:p-4 md:p-6">
         <div
           className="relative w-full max-w-2xl rounded-3xl border border-[#dccfbe] bg-[#f5efe6] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleModalClick}
         >
           <div className="flex items-center justify-between border-b border-[#dccfbe] px-4 py-4 sm:px-6">
             <div>
@@ -126,7 +80,7 @@ export default function EventSubmissionModal({
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(event) => setTitle(event.target.value)}
                 placeholder="Artwork title"
                 className="w-full rounded-xl border border-[#d9cfc3] bg-white px-4 py-3 text-sm text-[#3e2c23] outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
               />
@@ -138,7 +92,7 @@ export default function EventSubmissionModal({
               </label>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
                 placeholder="Tell us about your artwork"
                 rows={4}
                 className="w-full rounded-xl border border-[#d9cfc3] bg-white px-4 py-3 text-sm text-[#3e2c23] outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
@@ -152,7 +106,7 @@ export default function EventSubmissionModal({
               <input
                 type="text"
                 value={caption}
-                onChange={(e) => setCaption(e.target.value)}
+                onChange={(event) => setCaption(event.target.value)}
                 placeholder="Short submission caption"
                 className="w-full rounded-xl border border-[#d9cfc3] bg-white px-4 py-3 text-sm text-[#3e2c23] outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
               />
@@ -165,7 +119,7 @@ export default function EventSubmissionModal({
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                onChange={handleFileChange}
                 required
                 className="w-full rounded-xl border border-[#d9cfc3] bg-white px-4 py-3 text-sm text-[#3e2c23] outline-none file:mr-4 file:rounded-full file:border-0 file:bg-[#5a4636] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#6b5444]"
               />

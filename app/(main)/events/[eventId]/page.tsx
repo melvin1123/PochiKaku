@@ -5,10 +5,14 @@ import EventDetailsClient from "@/components/main-components/events/EventDetails
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
 
+type EventStatus = "Upcoming" | "Ongoing" | "Ended";
+
 type PageProps = {
-  params: {
-    eventId: string;
-  };
+  params: Promise<{
+    eventId?: string;
+    userId?: string;
+    id?: string;
+  }>;
 };
 
 async function getEventDetails(eventId: string) {
@@ -80,12 +84,10 @@ async function getEventDetails(eventId: string) {
   if (!event) return null;
 
   const now = new Date();
-
-  // ✅ SAFE DATE HANDLING
   const startDate = event.startDate;
   const deadline = event.deadline;
 
-  let status: "Upcoming" | "Ongoing" | "Ended" = "Upcoming";
+  let status: EventStatus = "Upcoming";
 
   if (deadline && now > deadline) {
     status = "Ended";
@@ -93,17 +95,15 @@ async function getEventDetails(eventId: string) {
     status = "Ongoing";
   }
 
-  // ✅ SAFE participant typing
   const hasJoined = currentUser
     ? event.participants.some(
-        (participant) => participant.user.id === currentUser.id
+        (participant) => participant.user.id === currentUser.id,
       )
     : false;
 
-  // ✅ SAFE submission typing
   const hasSubmitted = currentUser
     ? event.submissions.some(
-        (submission) => submission.userId === currentUser.id
+        (submission) => submission.userId === currentUser.id,
       )
     : false;
 
@@ -111,17 +111,17 @@ async function getEventDetails(eventId: string) {
     id: event.id,
     title: event.title,
     description: event.description,
-    img: event.backdropImage || "/placeholder.jpg", // ✅ fallback
+    img: event.backdropImage || "/placeholder.jpg",
     date: startDate
-      ? new Date(startDate).toLocaleDateString("en-US", {
+      ? startDate.toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
         })
       : "TBA",
     status,
-    startDate: startDate?.toISOString() ?? null,
-    deadline: deadline?.toISOString() ?? null,
+    startDate: startDate?.toISOString() ?? "",
+    deadline: deadline?.toISOString() ?? "",
     createdAt: event.createdAt.toISOString(),
     createdBy: event.createdBy,
 
@@ -160,12 +160,11 @@ async function getEventDetails(eventId: string) {
         title: submission.post.title,
         description: submission.post.description,
         imageUrl: submission.post.imageUrl,
-        createdAt: submission.post.createdAt.toISOString(),
         likesCount: submission.post.likes.length,
         commentsCount: submission.post.comments.length,
         isLiked: currentUser
           ? submission.post.likes.some(
-              (like) => like.userId === currentUser.id
+              (like) => like.userId === currentUser.id,
             )
           : false,
         comments: submission.post.comments.map((comment) => ({
@@ -184,7 +183,14 @@ async function getEventDetails(eventId: string) {
 }
 
 export default async function EventDetailsPage({ params }: PageProps) {
-  const { eventId } = params;
+  const resolvedParams = await params;
+
+  const eventId =
+    resolvedParams.eventId ?? resolvedParams.userId ?? resolvedParams.id;
+
+  if (!eventId) {
+    notFound();
+  }
 
   const event = await getEventDetails(eventId);
 
@@ -204,6 +210,7 @@ export default async function EventDetailsPage({ params }: PageProps) {
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 768px) 100vw, 1024px"
               />
             </div>
 
@@ -231,7 +238,7 @@ export default async function EventDetailsPage({ params }: PageProps) {
 
           <EventDetailsClient
             eventId={event.id}
-            initialSubmissions={event.submissions || []}
+            initialSubmissions={event.submissions}
             canSubmit={event.canSubmit}
             hasSubmitted={event.hasSubmitted}
             status={event.status}

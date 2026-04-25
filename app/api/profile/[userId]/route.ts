@@ -8,9 +8,9 @@ type RouteContext = {
   }>;
 };
 
-function formatTimeAgo(date: Date) {
+function formatTimeAgo(date: Date): string {
   const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffMs = now.getTime() - date.getTime();
 
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -21,7 +21,7 @@ function formatTimeAgo(date: Date) {
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
 
-  return new Date(date).toLocaleDateString();
+  return date.toLocaleDateString();
 }
 
 export async function GET(_: Request, context: RouteContext) {
@@ -29,17 +29,17 @@ export async function GET(_: Request, context: RouteContext) {
     const currentUser = await getCurrentUserFromToken().catch(() => null);
     const { userId } = await context.params;
 
-    if (!userId || typeof userId !== "string") {
-      return NextResponse.json(
-        { error: "Invalid user id." },
-        { status: 400 }
-      );
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid user id." }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         posts: {
+          where: {
+            type: "post",
+          },
           orderBy: { createdAt: "desc" },
           include: {
             likes: true,
@@ -52,19 +52,14 @@ export async function GET(_: Request, context: RouteContext) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    const cloudinaryBaseUrl = "https://res.cloudinary.com/dh8rpbwxq/";
-
     const artworks = user.posts
-      .filter((post) => typeof post.imageUrl === "string" && post.imageUrl.startsWith(cloudinaryBaseUrl))
+      .filter((post) => Boolean(post.imageUrl))
       .map((post) => ({
         id: post.id,
-        title: post.title || "Untitled",
+        title: post.title ?? "Untitled",
         imageUrl: post.imageUrl,
         likes: post.likes.length,
         comments: post.comments.length,
@@ -72,8 +67,8 @@ export async function GET(_: Request, context: RouteContext) {
         createdAt: post.createdAt.toISOString(),
         artist: user.username,
         artistId: user.id,
-        avatar: user.avatarUrl || "/avatar.jpg",
-        description: post.description || "",
+        avatar: user.avatarUrl ?? "/avatar.jpg",
+        description: post.description ?? "",
       }));
 
     let isFollowed = false;
@@ -96,8 +91,8 @@ export async function GET(_: Request, context: RouteContext) {
           id: user.id,
           username: user.username,
           email: user.email,
-          avatarUrl: user.avatarUrl || "/avatar.jpg",
-          bio: user.bio || "",
+          avatarUrl: user.avatarUrl ?? "/avatar.jpg",
+          bio: user.bio ?? "",
           isOwnProfile: currentUser ? currentUser.id === user.id : false,
           isFollowed,
         },
@@ -108,16 +103,17 @@ export async function GET(_: Request, context: RouteContext) {
         },
         artworks,
       },
-      { status: 200 }
+      { status: 200 },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET /api/profile/[userId] error:", error);
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Failed to load profile.",
+        error:
+          error instanceof Error ? error.message : "Failed to load profile.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

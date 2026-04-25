@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useUploadArtModal } from "@/app/hooks/homepage/useUploadArtModal";
 
 type UploadArtModalProps = {
   isOpen: boolean;
@@ -11,98 +11,19 @@ export default function UploadArtModal({
   isOpen,
   onClose,
 }: UploadArtModalProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [file]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] ?? null;
-    setFile(selectedFile);
-  };
-
-  const resetForm = () => {
-    setFile(null);
-    setPreviewUrl(null);
-    setTitle("");
-    setDescription("");
-    setTags("");
-    setError("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-
-    if (!file) {
-      setError("Please select an image.");
-      return;
-    }
-
-    if (!title.trim()) {
-      setError("Title is required.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("title", title.trim());
-    formData.append("description", description.trim());
-    formData.append("tags", tags.trim());
-    formData.append("file", file);
-
-
-    try {
-      setIsSubmitting(true);
-
-      const res = await fetch("/api/upload-art", {
-        method: "POST",
-        body: formData,
-      });
-
-const text = await res.text();
-console.log("Raw upload response:", text);
-
-let data: any = {};
-try {
-  data = JSON.parse(text);
-} catch {
-  data = { error: text };
-}
-
-if (!res.ok) {
-  throw new Error(data?.error || `Upload failed with status ${res.status}`);
-}
-
-      console.log("Post created:", data);
-
-      resetForm();
-      onClose();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
-      setError(message);
-      console.error("Upload error:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    previewUrl,
+    title,
+    description,
+    tags,
+    isSubmitting,
+    error,
+    setTitle,
+    setDescription,
+    setTags,
+    handleFileChange,
+    handleSubmit,
+  } = useUploadArtModal({ onClose });
 
   if (!isOpen) return null;
 
@@ -127,7 +48,7 @@ if (!res.ok) {
             type="text"
             placeholder="Title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
             className="rounded-lg border border-[#5a4636] p-2"
             required
           />
@@ -135,7 +56,7 @@ if (!res.ok) {
           <textarea
             placeholder="Description (optional)"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(event) => setDescription(event.target.value)}
             className="h-20 resize-none rounded-lg border border-[#5a4636] p-2"
           />
 
@@ -143,7 +64,7 @@ if (!res.ok) {
             type="text"
             placeholder="Tags (comma separated)"
             value={tags}
-            onChange={(e) => setTags(e.target.value)}
+            onChange={(event) => setTags(event.target.value)}
             className="rounded-lg border border-[#5a4636] p-2"
           />
 

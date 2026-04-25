@@ -1,27 +1,40 @@
+import Link from "next/link";
+import type { IconType } from "react-icons";
+
 type QuickActionCardProps = {
   title: string;
-  Icon: any; // could improve later
+  Icon: IconType;
   link?: string;
   onClick?: () => void;
 };
 
-export default function QuickActionCard({ title, Icon, link, onClick }: QuickActionCardProps) {
-  const isLink = !!link;
-  const baseClass = "flex flex-col items-center justify-center p-6 bg-[#e8dfd3] rounded-lg shadow hover:bg-[#5a4636] hover:text-[#f5efe6] transition cursor-pointer";
+export default function QuickActionCard({
+  title,
+  Icon,
+  link,
+  onClick,
+}: QuickActionCardProps) {
+  const baseClass =
+    "flex flex-col items-center justify-center p-6 bg-[#e8dfd3] rounded-lg shadow hover:bg-[#5a4636] hover:text-[#f5efe6] transition cursor-pointer";
 
-  if (isLink) {
+  if (link) {
     return (
-      <a href={link} className={baseClass}>
+      <Link href={link} className={baseClass}>
         <Icon size={24} />
-        <span className="mt-2 font-semibold text-center">{title}</span>
-      </a>
+        <span className="mt-2 text-center font-semibold">{title}</span>
+      </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={baseClass}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={baseClass}
+    >
       <Icon size={24} />
-      <span className="mt-2 font-semibold text-center">{title}</span>
+      <span className="mt-2 text-center font-semibold">{title}</span>
     </button>
   );
 }

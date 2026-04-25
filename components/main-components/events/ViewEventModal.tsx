@@ -1,36 +1,24 @@
 "use client";
 
 import { useEffect } from "react";
+import type { MouseEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import type { EventItem } from "@/app/types/event";
+import {
+  getEventStatusClasses,
+  getIsJoinDisabled,
+  getJoinButtonText,
+} from "@/app/logic/eventViewModalLogic";
 
-interface EventReferenceImage {
-  id: string;
-  imageUrl: string;
-}
-
-interface EventParticipant {
-  id: string;
-  username: string;
-}
-
-interface ViewEventModalProps {
+type ViewEventModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  event: {
-    id: string;
-    title: string;
-    description: string;
-    img: string;
-    date: string;
-    status: "Ongoing" | "Upcoming" | "Ended";
-    referenceImages?: EventReferenceImage[];
-    participants?: EventParticipant[];
-  } | null;
+  event: EventItem | null;
   onJoin?: () => void;
   hasJoined?: boolean;
   isJoining?: boolean;
-}
+};
 
 export default function ViewEventModal({
   isOpen,
@@ -45,8 +33,8 @@ export default function ViewEventModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handleEscape = (keyboardEvent: KeyboardEvent): void => {
+      if (keyboardEvent.key === "Escape") onClose();
     };
 
     document.addEventListener("keydown", handleEscape);
@@ -61,25 +49,35 @@ export default function ViewEventModal({
   if (!isOpen || !event) return null;
 
   const isEnded = event.status === "Ended";
-  const isJoinDisabled = !onJoin || isEnded || hasJoined || isJoining;
 
-  const statusClasses =
-    event.status === "Ongoing"
-      ? "bg-green-100 text-green-700 border border-green-200"
-      : event.status === "Upcoming"
-        ? "bg-blue-100 text-blue-700 border border-blue-200"
-        : "bg-gray-200 text-gray-700 border border-gray-300";
+  const isJoinDisabled = getIsJoinDisabled({
+    onJoinExists: Boolean(onJoin),
+    isEnded,
+    hasJoined,
+    isJoining,
+  });
 
-  const getJoinButtonText = () => {
-    if (isJoining) return "Joining...";
-    if (hasJoined) return "Already Joined";
-    if (isEnded) return "Event Ended";
-    return "Join Event";
+  const statusClasses = getEventStatusClasses(event.status);
+
+  const joinButtonText = getJoinButtonText({
+    isJoining,
+    hasJoined,
+    isEnded,
+  });
+
+  const handleModalClick = (mouseEvent: MouseEvent<HTMLDivElement>): void => {
+    mouseEvent.stopPropagation();
   };
 
-  const handleVisitEvent = () => {
+  const handleVisitEvent = (): void => {
     router.push(`/events/${event.id}`);
     onClose();
+  };
+
+  const handleJoinClick = (): void => {
+    if (isJoinDisabled) return;
+
+    onJoin?.();
   };
 
   return (
@@ -90,13 +88,14 @@ export default function ViewEventModal({
       <div className="flex min-h-dvh items-center justify-center p-3 sm:p-4 md:p-6">
         <div
           className="relative flex max-h-[95dvh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-[#dccfbe] bg-[#f5efe6] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleModalClick}
         >
           <div className="flex items-center justify-between border-b border-[#dccfbe] bg-[#f5efe6] px-4 py-4 sm:px-6">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#8a6f5a]">
                 Event Details
               </p>
+
               <h3 className="mt-1 text-lg font-bold text-[#3e2c23] sm:text-xl">
                 {event.title}
               </h3>
@@ -122,6 +121,7 @@ export default function ViewEventModal({
                 sizes="(max-width: 768px) 100vw, 900px"
                 priority
               />
+
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
               <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -129,6 +129,7 @@ export default function ViewEventModal({
                   <h4 className="text-xl font-bold text-white sm:text-2xl">
                     {event.title}
                   </h4>
+
                   <p className="mt-1 text-sm text-white/90 sm:text-base">
                     📅 {event.date}
                   </p>
@@ -147,6 +148,7 @@ export default function ViewEventModal({
                 <h5 className="text-sm font-semibold uppercase tracking-wide text-[#7a5d49]">
                   Description
                 </h5>
+
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#5a4636] sm:text-base">
                   {event.description}
                 </p>
@@ -157,6 +159,7 @@ export default function ViewEventModal({
                   <h5 className="text-sm font-semibold uppercase tracking-wide text-[#7a5d49]">
                     Participants
                   </h5>
+
                   <span className="text-xs text-[#8a6f5a]">
                     {event.participants?.length ?? 0} joined
                   </span>
@@ -172,12 +175,17 @@ export default function ViewEventModal({
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3e2c23] text-xs font-semibold text-[#f5efe6]">
                           {participant.username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium">{participant.username}</span>
+
+                        <span className="font-medium">
+                          {participant.username}
+                        </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#8a6f5a]">No participants yet.</p>
+                  <p className="text-sm text-[#8a6f5a]">
+                    No participants yet.
+                  </p>
                 )}
               </div>
 
@@ -187,6 +195,7 @@ export default function ViewEventModal({
                     <h5 className="text-sm font-semibold uppercase tracking-wide text-[#7a5d49]">
                       Reference Images
                     </h5>
+
                     <span className="text-xs text-[#8a6f5a]">
                       {event.referenceImages.length} image
                       {event.referenceImages.length > 1 ? "s" : ""}
@@ -240,7 +249,7 @@ export default function ViewEventModal({
 
               <button
                 type="button"
-                onClick={onJoin}
+                onClick={handleJoinClick}
                 disabled={isJoinDisabled}
                 className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                   isJoinDisabled
@@ -248,7 +257,7 @@ export default function ViewEventModal({
                     : "bg-[#3e2c23] text-[#f5efe6] hover:bg-[#5a4636]"
                 }`}
               >
-                {getJoinButtonText()}
+                {joinButtonText}
               </button>
             </div>
           </div>

@@ -1,100 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import SearchBar from "@/components/main-components/gallery/SearchBar";
-import GalleryGrid, {
-  GalleryItem,
-} from "@/components/main-components/gallery/GalleryGrid";
+import GalleryGrid from "@/components/main-components/gallery/GalleryGrid";
 import ArtModal from "@/components/main-components/gallery/ArtModal";
+import { useGallery } from "@/app/hooks/gallery/useGallery";
 
 export default function GalleryPage() {
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [selectedArt, setSelectedArt] = useState<GalleryItem | null>(null);
-  const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const fetchGalleryItems = async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-
-      const res = await fetch("/api/gallery", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      const text = await res.text();
-
-      let data: unknown;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(`API did not return JSON. Status: ${res.status}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(
-          typeof data === "object" &&
-            data !== null &&
-            "error" in data &&
-            typeof (data as any).error === "string"
-            ? (data as any).error
-            : "Failed to fetch gallery items."
-        );
-      }
-
-      if (Array.isArray(data)) {
-        setGalleryItems(data as GalleryItem[]);
-      } else {
-        setGalleryItems([]);
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
-      setError(message);
-      console.error("Fetch gallery error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchGalleryItems();
-  }, []);
-
-  const filteredItems = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    if (!keyword) return galleryItems;
-
-    return galleryItems.filter((item) => {
-      return (
-        item.title?.toLowerCase().includes(keyword) ||
-        item.artist?.toLowerCase().includes(keyword) ||
-        item.description?.toLowerCase().includes(keyword)
-      );
-    });
-  }, [galleryItems, search]);
-
-  // ✅ SAFE more artworks computation
-  const moreArtworks = useMemo(() => {
-    if (!selectedArt) return [];
-
-    return galleryItems
-      .filter(
-        (a) =>
-          a.artistId === selectedArt.artistId &&
-          a.id !== selectedArt.id
-      )
-      .slice(0, 6);
-  }, [galleryItems, selectedArt]);
+  const {
+    filteredItems,
+    selectedArt,
+    moreArtworks,
+    search,
+    isLoading,
+    error,
+    setSearch,
+    setSelectedArt,
+  } = useGallery();
 
   return (
     <MainLayout>
-      <div className="mb-4 ml-8 mt-6 mr-8 flex items-end justify-between">
+      <div className="mb-4 ml-8 mr-8 mt-6 flex items-end justify-between">
         <div>
           <h2 className="text-3xl font-bold">Gallery</h2>
           <p className="mt-1 text-[#5a4636]">
@@ -115,17 +41,14 @@ export default function GalleryPage() {
             {error}
           </div>
         ) : (
-          <GalleryGrid
-            items={filteredItems}
-            onSelect={setSelectedArt}
-          />
+          <GalleryGrid items={filteredItems} onSelect={setSelectedArt} />
         )}
       </section>
 
       <ArtModal
         art={selectedArt}
         onClose={() => setSelectedArt(null)}
-        onChangeArt={(art) => setSelectedArt(art)}
+        onChangeArt={setSelectedArt}
         moreArtworks={moreArtworks}
       />
     </MainLayout>

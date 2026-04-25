@@ -1,171 +1,37 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
 import Link from "next/link";
+import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
+import { useArtPostCard } from "@/app/hooks/homepage/useArtPostCard";
+import type { Post } from "@/app/types/post";
 
-type CommentItem = {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    avatarUrl: string;
-  };
+const DEFAULT_AVATAR =
+  "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg";
+
+type ArtPostCardProps = {
+  post: Post;
 };
 
-type Post = {
-  id: string;
-  image: string;
-  title: string;
-  description?: string;
-  artist: string;
-  artistId: string;
-  avatar: string;
-  likes: number;
-  comments: number;
-  time: string;
-  isFollowed?: boolean;
-  isLiked?: boolean;
-  commentsPreview?: CommentItem[];
-};
-
-export default function ArtCard({ post }: { post: Post }) {
-  const [isFollowed, setIsFollowed] = useState(!!post.isFollowed);
-  const [isLiked, setIsLiked] = useState(!!post.isLiked);
-  const [likes, setLikes] = useState(post.likes);
-  const [comments, setComments] = useState<CommentItem[]>(
-    post.commentsPreview || [],
-  );
-  const [commentCount, setCommentCount] = useState(post.comments);
-  const [commentInput, setCommentInput] = useState("");
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowPostModal(false);
-        setShowMenu(false);
-      }
-    };
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showPostModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.body.style.overflow = "unset";
-      window.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showPostModal]);
-
-  const handleFollowToggle = async () => {
-    try {
-      const res = await fetch(`/api/users/${post.artistId}/follow`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const text = await res.text();
-
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(`API did not return JSON. Status: ${res.status}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to toggle follow");
-      }
-
-      setIsFollowed(data.isFollowed);
-      setShowMenu(false);
-    } catch (error) {
-      console.error("Follow toggle error:", error);
-    }
-  };
-
-  const handleLikeToggle = async () => {
-    try {
-      const res = await fetch(`/api/posts/${post.id}/like`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const text = await res.text();
-
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(`API did not return JSON. Status: ${res.status}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to toggle like");
-      }
-
-      setIsLiked(data.isLiked);
-      setLikes(data.likes);
-    } catch (error) {
-      console.error("Like toggle error:", error);
-    }
-  };
-
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!commentInput.trim()) return;
-
-    try {
-      setIsSubmittingComment(true);
-
-      const res = await fetch(`/api/posts/${post.id}/comments`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: commentInput,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to comment");
-      }
-
-      setComments((prev) => [...prev, data.comment]);
-      setCommentCount(data.comments);
-      setCommentInput("");
-    } catch (error) {
-      console.error("Comment submit error:", error);
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
+export default function ArtPostCard({ post }: ArtPostCardProps) {
+  const {
+    isFollowed,
+    isLiked,
+    likes,
+    comments,
+    commentCount,
+    commentInput,
+    isSubmittingComment,
+    showPostModal,
+    showMenu,
+    menuRef,
+    setCommentInput,
+    setShowPostModal,
+    setShowMenu,
+    handleFollowToggle,
+    handleLikeToggle,
+    handleCommentSubmit,
+  } = useArtPostCard(post);
 
   return (
     <>
@@ -179,6 +45,7 @@ export default function ArtCard({ post }: { post: Post }) {
                   alt={post.artist}
                   fill
                   className="rounded-full object-cover"
+                  sizes="40px"
                 />
               </Link>
             </div>
@@ -237,6 +104,7 @@ export default function ArtCard({ post }: { post: Post }) {
 
         <div className="px-4 pb-3 pt-3">
           <p className="text-base font-semibold text-[#3e2c23]">{post.title}</p>
+
           {post.description && (
             <p className="mt-1 text-sm leading-relaxed text-[#5a4636]">
               {post.description}
@@ -270,7 +138,6 @@ export default function ArtCard({ post }: { post: Post }) {
                 height={1600}
                 className="relative z-10 h-auto max-h-[85vh] w-full object-contain"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 940px"
-                priority={false}
               />
             </div>
           </button>
@@ -304,13 +171,13 @@ export default function ArtCard({ post }: { post: Post }) {
 
       {showPostModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm p-2 sm:p-4"
+          className="fixed inset-0 z-50 bg-black/60 p-2 backdrop-blur-sm sm:p-4"
           onClick={() => setShowPostModal(false)}
         >
           <div className="flex min-h-full items-center justify-center">
             <div
               className="relative flex h-[95vh] w-full max-w-7xl overflow-hidden rounded-3xl bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
             >
               <button
                 type="button"
@@ -402,6 +269,7 @@ export default function ArtCard({ post }: { post: Post }) {
                     <h3 className="text-lg font-bold text-[#3e2c23]">
                       {post.title}
                     </h3>
+
                     {post.description && (
                       <p className="mt-2 text-sm leading-relaxed text-[#5a4636]">
                         {post.description}
@@ -418,7 +286,9 @@ export default function ArtCard({ post }: { post: Post }) {
                       >
                         <FaHeart
                           size={18}
-                          className={isLiked ? "text-red-500" : "text-[#3e2c23]"}
+                          className={
+                            isLiked ? "text-red-500" : "text-[#3e2c23]"
+                          }
                         />
                         <span>{likes} Likes</span>
                       </button>
@@ -444,7 +314,7 @@ export default function ArtCard({ post }: { post: Post }) {
                           >
                             <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
                               <Image
-                                src={comment.user.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
+                                src={comment.user.avatarUrl || DEFAULT_AVATAR}
                                 alt={comment.user.username}
                                 fill
                                 className="object-cover"
@@ -456,6 +326,7 @@ export default function ArtCard({ post }: { post: Post }) {
                               <p className="text-sm font-semibold text-[#3e2c23]">
                                 {comment.user.username}
                               </p>
+
                               <p className="break-words text-sm text-[#5a4636]">
                                 {comment.content}
                               </p>
@@ -471,10 +342,13 @@ export default function ArtCard({ post }: { post: Post }) {
                       <input
                         type="text"
                         value={commentInput}
-                        onChange={(e) => setCommentInput(e.target.value)}
+                        onChange={(event) =>
+                          setCommentInput(event.target.value)
+                        }
                         placeholder="Write a comment..."
                         className="flex-1 rounded-full border border-[#d9cfc3] bg-white px-4 py-2 text-sm text-[#3e2c23] outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
                       />
+
                       <button
                         type="submit"
                         disabled={isSubmittingComment}
