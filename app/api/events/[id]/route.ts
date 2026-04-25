@@ -102,7 +102,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     const hasJoined = currentUser
       ? event.participants.some(
-          (participant) => participant.user.id === currentUser.id,
+          (participant: { user: { id: string } }) =>
+            participant.user.id === currentUser.id,
         )
       : false;
 
