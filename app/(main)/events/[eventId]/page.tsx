@@ -144,10 +144,12 @@ const hasSubmitted = currentUser
       }),
     ),
 
-    referenceImages: event.referenceImages.map((image) => ({
-      id: image.id,
-      imageUrl: image.imageUrl,
-    })),
+    referenceImages: event.referenceImages.map(
+      (image: { id: string; imageUrl: string }) => ({
+        id: image.id,
+        imageUrl: image.imageUrl,
+      }),
+    ),
 
     submissions: event.submissions.map((submission) => ({
       id: submission.id,
