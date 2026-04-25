@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import SearchBar from "@/components/main-components/gallery/SearchBar";
-import GalleryGrid from "@/components/main-components/gallery/GalleryGrid";
+import GalleryGrid, {
+  GalleryItem,
+} from "@/components/main-components/gallery/GalleryGrid";
 import ArtModal from "@/components/main-components/gallery/ArtModal";
-import { GalleryItem } from "@/components/main-components/gallery/GalleryGrid";
-
 
 export default function GalleryPage() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
@@ -27,7 +27,8 @@ export default function GalleryPage() {
 
       const text = await res.text();
 
-      let data: GalleryItem[] | { error?: string };
+      let data: unknown;
+
       try {
         data = JSON.parse(text);
       } catch {
@@ -36,13 +37,20 @@ export default function GalleryPage() {
 
       if (!res.ok) {
         throw new Error(
-          !Array.isArray(data) && data?.error
-            ? data.error
+          typeof data === "object" &&
+            data !== null &&
+            "error" in data &&
+            typeof (data as any).error === "string"
+            ? (data as any).error
             : "Failed to fetch gallery items."
         );
       }
 
-      setGalleryItems(Array.isArray(data) ? data : []);
+      if (Array.isArray(data)) {
+        setGalleryItems(data as GalleryItem[]);
+      } else {
+        setGalleryItems([]);
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong.";
@@ -64,12 +72,25 @@ export default function GalleryPage() {
 
     return galleryItems.filter((item) => {
       return (
-        item.title.toLowerCase().includes(keyword) ||
-        item.artist.toLowerCase().includes(keyword) ||
-        item.description.toLowerCase().includes(keyword)
+        item.title?.toLowerCase().includes(keyword) ||
+        item.artist?.toLowerCase().includes(keyword) ||
+        item.description?.toLowerCase().includes(keyword)
       );
     });
   }, [galleryItems, search]);
+
+  // ✅ SAFE more artworks computation
+  const moreArtworks = useMemo(() => {
+    if (!selectedArt) return [];
+
+    return galleryItems
+      .filter(
+        (a) =>
+          a.artistId === selectedArt.artistId &&
+          a.id !== selectedArt.id
+      )
+      .slice(0, 6);
+  }, [galleryItems, selectedArt]);
 
   return (
     <MainLayout>
@@ -104,10 +125,8 @@ export default function GalleryPage() {
       <ArtModal
         art={selectedArt}
         onClose={() => setSelectedArt(null)}
-        onChangeArt={(art) => setSelectedArt(art)} // 🔥 required
-        moreArtworks={galleryItems
-          .filter((a) => a.artistId === selectedArt?.artistId && a.id !== selectedArt?.id)
-          .slice(0, 6)}
+        onChangeArt={(art) => setSelectedArt(art)}
+        moreArtworks={moreArtworks}
       />
     </MainLayout>
   );
