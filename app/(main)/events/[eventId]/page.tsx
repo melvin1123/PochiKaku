@@ -95,17 +95,18 @@ async function getEventDetails(eventId: string) {
     status = "Ongoing";
   }
 
-  const hasJoined = currentUser
-    ? event.participants.some(
-        (participant) => participant.user.id === currentUser.id,
-      )
-    : false;
+const hasJoined = currentUser
+  ? event.participants.some(
+      (participant: { user: { id: string } }) =>
+        participant.user.id === currentUser.id,
+    )
+  : false;
 
-  const hasSubmitted = currentUser
-    ? event.submissions.some(
-        (submission) => submission.userId === currentUser.id,
-      )
-    : false;
+const hasSubmitted = currentUser
+  ? event.submissions.some(
+      (submission: { userId: string }) => submission.userId === currentUser.id,
+    )
+  : false;
 
   return {
     id: event.id,
