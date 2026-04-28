@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { UploadApiResponse } from "cloudinary";
-import { getCurrentUserFromToken } from "@/lib/auth/auth";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { cloudinary } from "@/lib/cloudinary";
@@ -9,30 +8,28 @@ export const runtime = "nodejs";
 
 type EventStatus = "Ongoing" | "Upcoming" | "Ended";
 
-const MAX_REFERENCE_IMAGES = 7;
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
-const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg"];
-const BACKDROP_FOLDER = "events/backdrops";
-const REFERENCE_FOLDER = "events/references";
+type CurrentUser = {
+  id: string;
+};
 
-function computeStatus(startDate: Date, deadline: Date): EventStatus {
-  const now = new Date();
+type EventCreator = {
+  id: string;
+  username: string;
+};
 
-  if (now < startDate) return "Upcoming";
-  if (now > deadline) return "Ended";
-  return "Ongoing";
-}
+type EventReferenceImage = {
+  id: string;
+  imageUrl: string;
+};
 
-function formatDateRange(startDate: Date, deadline: Date) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+type EventParticipantWithUser = {
+  user: {
+    id: string;
+    username: string;
+  };
+};
 
-  return `${formatter.format(startDate)} - ${formatter.format(deadline)}`;
-}
-
-function formatEventResponse(event: {
+type EventWithDetails = {
   id: string;
   title: string;
   description: string;
@@ -41,21 +38,40 @@ function formatEventResponse(event: {
   deadline: Date;
   createdAt: Date;
   createdBy: string;
-  creator: {
-    id: string;
-    username: string;
-  } | null;
-  referenceImages: Array<{
-    id: string;
-    imageUrl: string;
-  }>;
-  participants: Array<{
-    user: {
-      id: string;
-      username: string;
-    };
-  }>;
-}) {
+  creator: EventCreator | null;
+  referenceImages: EventReferenceImage[];
+  participants: EventParticipantWithUser[];
+};
+
+type JoinedEvent = {
+  eventId: string;
+};
+
+const MAX_REFERENCE_IMAGES = 7;
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg"] as const;
+const BACKDROP_FOLDER = "events/backdrops";
+const REFERENCE_FOLDER = "events/references";
+
+function computeStatus(startDate: Date, deadline: Date): EventStatus {
+  const now = new Date();
+
+  if (now < startDate) return "Upcoming";
+  if (now > deadline) return "Ended";
+
+  return "Ongoing";
+}
+
+function formatDateRange(startDate: Date, deadline: Date): string {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  return `${formatter.format(startDate)} - ${formatter.format(deadline)}`;
+}
+
+function formatEventResponse(event: EventWithDetails) {
   return {
     id: event.id,
     title: event.title,
@@ -76,11 +92,11 @@ function formatEventResponse(event: {
   };
 }
 
-function isValidDate(date: Date | null) {
+function isValidDate(date: Date | null): date is Date {
   return Boolean(date && !Number.isNaN(date.getTime()));
 }
 
-async function getFallbackUserId() {
+async function getFallbackUserId(): Promise<string | null> {
   const fallbackUser = await prisma.user.findFirst({
     select: { id: true },
     orderBy: { createdAt: "asc" },
@@ -90,11 +106,11 @@ async function getFallbackUserId() {
 }
 
 function validateImageFile(file: File, label: string): string | null {
-  if (!file || file.size === 0) {
+  if (file.size === 0) {
     return `${label} is empty or invalid.`;
   }
 
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  if (!ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])) {
     return `${label} must be a PNG or JPG image.`;
   }
 
@@ -112,16 +128,16 @@ async function uploadFileToCloudinary(
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  return new Promise((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
         resource_type: "image",
         allowed_formats: ["png", "jpg", "jpeg"],
       },
-      (error, result) => {
+      (error: unknown, result: UploadApiResponse | undefined) => {
         if (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error("Cloudinary upload failed."));
           return;
         }
 
@@ -140,9 +156,9 @@ async function uploadFileToCloudinary(
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const user = (await getCurrentUser()) as CurrentUser | null;
 
-    const events = await prisma.event.findMany({
+    const events = (await prisma.event.findMany({
       include: {
         referenceImages: true,
         creator: {
@@ -165,15 +181,15 @@ export async function GET() {
       orderBy: {
         startDate: "asc",
       },
-    });
+    })) as EventWithDetails[];
 
     let joinedEventIds: string[] = [];
 
     if (user) {
-      const joined = await prisma.eventParticipant.findMany({
+      const joined = (await prisma.eventParticipant.findMany({
         where: { userId: user.id },
         select: { eventId: true },
-      });
+      })) as JoinedEvent[];
 
       joinedEventIds = joined.map((item) => item.eventId);
     }
@@ -188,8 +204,9 @@ export async function GET() {
     });
 
     return NextResponse.json(formatted);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET /api/events failed:", error);
+
     return NextResponse.json(
       { error: "Failed to load events." },
       { status: 500 },
@@ -212,14 +229,16 @@ export async function POST(request: Request) {
     const startDate = startDateValue ? new Date(startDateValue) : null;
     const deadline = deadlineValue ? new Date(deadlineValue) : null;
 
-    if (
-      !title ||
-      !description ||
-      !isValidDate(startDate) ||
-      !isValidDate(deadline)
-    ) {
+    if (!title || !description || !isValidDate(startDate) || !isValidDate(deadline)) {
       return NextResponse.json(
         { error: "Missing or invalid required fields." },
+        { status: 400 },
+      );
+    }
+
+    if (deadline < startDate) {
+      return NextResponse.json(
+        { error: "Deadline cannot be earlier than start date." },
         { status: 400 },
       );
     }
@@ -230,27 +249,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-
-  if (!startDate) {
-  return NextResponse.json(
-    { error: "Start date is required." },
-    { status: 400 },
-  );
-  }
-
-  if (!deadline) {
-    return NextResponse.json(
-      { error: "Deadline is required." },
-      { status: 400 },
-    );
-  }
-
-  if (deadline < startDate) {
-    return NextResponse.json(
-      { error: "Deadline cannot be earlier than start date." },
-      { status: 400 },
-    );
-  }
 
     const backdropValidationError = validateImageFile(
       backdropImageEntry,
@@ -280,7 +278,7 @@ export async function POST(request: Request) {
     for (const [index, file] of referenceFiles.entries()) {
       const validationError = validateImageFile(
         file,
-        `Reference image ${index + 1}`
+        `Reference image ${index + 1}`,
       );
 
       if (validationError) {
@@ -308,7 +306,7 @@ export async function POST(request: Request) {
       ),
     );
 
-    const createdEvent = await prisma.event.create({
+    const createdEvent = (await prisma.event.create({
       data: {
         title,
         description,
@@ -341,12 +339,12 @@ export async function POST(request: Request) {
           },
         },
       },
-    });
+    })) as EventWithDetails;
 
     return NextResponse.json(formatEventResponse(createdEvent), {
       status: 201,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("POST /api/events failed:", error);
 
     return NextResponse.json(
