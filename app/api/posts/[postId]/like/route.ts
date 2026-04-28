@@ -8,15 +8,22 @@ type RouteContext = {
   }>;
 };
 
+type CurrentUser = {
+  id: string;
+};
+
+type LikeResponse = {
+  success: boolean;
+  isLiked: boolean;
+  likes: number;
+};
+
 export async function POST(_: Request, context: RouteContext) {
   try {
-    const currentUser = await getCurrentUserFromToken();
+    const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { postId } = await context.params;
@@ -24,7 +31,7 @@ export async function POST(_: Request, context: RouteContext) {
     if (!postId) {
       return NextResponse.json(
         { error: "Post ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,16 +41,16 @@ export async function POST(_: Request, context: RouteContext) {
     });
 
     if (!post) {
-      return NextResponse.json(
-        { error: "Post not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     const existingLike = await prisma.like.findFirst({
       where: {
         userId: currentUser.id,
         postId,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -58,11 +65,13 @@ export async function POST(_: Request, context: RouteContext) {
         where: { postId },
       });
 
-      return NextResponse.json({
+      const response: LikeResponse = {
         success: true,
         isLiked: false,
         likes: likeCount,
-      });
+      };
+
+      return NextResponse.json(response);
     }
 
     await prisma.like.create({
@@ -76,19 +85,21 @@ export async function POST(_: Request, context: RouteContext) {
       where: { postId },
     });
 
-    return NextResponse.json({
+    const response: LikeResponse = {
       success: true,
       isLiked: true,
       likes: likeCount,
-    });
-  } catch (error) {
+    };
+
+    return NextResponse.json(response);
+  } catch (error: unknown) {
     console.error("POST /api/posts/[postId]/like error:", error);
 
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to toggle like",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
