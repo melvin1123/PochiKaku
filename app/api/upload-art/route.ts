@@ -11,8 +11,27 @@ type JwtPayload = {
   username: string;
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_IMAGE_TYPES = new Set([
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+
+type CloudinaryUploadResult = {
+  secure_url: string;
+  public_id: string;
+};
+
+type CreatedPost = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  imageUrl: string;
+  imagePublicId: string | null;
+  type: string;
+  createdAt: Date;
+  userId: string;
+};
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = new Set<string>([
   "image/jpeg",
   "image/jpg",
   "image/png",
@@ -20,12 +39,25 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 
-function getTokenFromCookies(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+function getTokenFromCookies(cookieStore: CookieStore): string | null {
   return cookieStore.get("token")?.value ?? null;
 }
 
-function uploadBufferToCloudinary(buffer: Buffer) {
-  return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+function isJwtPayload(value: unknown): value is JwtPayload {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "userId" in value &&
+    "email" in value &&
+    "username" in value &&
+    typeof value.userId === "string" &&
+    typeof value.email === "string" &&
+    typeof value.username === "string"
+  );
+}
+
+function uploadBufferToCloudinary(buffer: Buffer): Promise<CloudinaryUploadResult> {
+  return new Promise<CloudinaryUploadResult>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: "pochikomporo/posts",
@@ -33,14 +65,16 @@ function uploadBufferToCloudinary(buffer: Buffer) {
         overwrite: false,
         unique_filename: true,
       },
-      (error, result) => {
+      (error: unknown, result: CloudinaryUploadResult | undefined) => {
         if (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error("Cloudinary upload failed."));
           return;
         }
 
         if (!result?.secure_url || !result?.public_id) {
-          reject(new Error("Cloudinary upload did not return the expected result."));
+          reject(
+            new Error("Cloudinary upload did not return the expected result."),
+          );
           return;
         }
 
@@ -48,7 +82,7 @@ function uploadBufferToCloudinary(buffer: Buffer) {
           secure_url: result.secure_url,
           public_id: result.public_id,
         });
-      }
+      },
     );
 
     Readable.from(buffer).pipe(uploadStream);
@@ -64,16 +98,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!process.env.JWT_SECRET) {
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
       console.error("Missing JWT_SECRET");
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 },
+      );
     }
 
     let decoded: JwtPayload;
+
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
+      const verifiedToken: unknown = jwt.verify(token, jwtSecret);
+
+      if (!isJwtPayload(verifiedToken)) {
+        return NextResponse.json(
+          { error: "Invalid session payload" },
+          { status: 401 },
+        );
+      }
+
+      decoded = verifiedToken;
     } catch {
-      return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid or expired session" },
+        { status: 401 },
+      );
     }
 
     const currentUser = await prisma.user.findUnique({
@@ -84,7 +137,7 @@ export async function POST(req: Request) {
     if (!currentUser) {
       return NextResponse.json(
         { error: "Authenticated user not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -101,35 +154,35 @@ export async function POST(req: Request) {
     if (!title) {
       return NextResponse.json(
         { error: "Title is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!(fileValue instanceof File)) {
       return NextResponse.json(
         { error: "A valid image file is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!ALLOWED_IMAGE_TYPES.has(fileValue.type)) {
       return NextResponse.json(
         { error: "Only JPG, PNG, WEBP, and GIF images are allowed." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (fileValue.size <= 0) {
       return NextResponse.json(
         { error: "The selected file is empty." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (fileValue.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "Image too large. Please upload a file under 10 MB." },
-        { status: 413 }
+        { status: 413 },
       );
     }
 
@@ -138,7 +191,7 @@ export async function POST(req: Request) {
 
     const uploaded = await uploadBufferToCloudinary(buffer);
 
-    const post = await prisma.post.create({
+    const post = (await prisma.post.create({
       data: {
         title,
         description: description || null,
@@ -153,28 +206,27 @@ export async function POST(req: Request) {
         description: true,
         imageUrl: true,
         imagePublicId: true,
-        type: true, 
+        type: true,
         createdAt: true,
         userId: true,
       },
-    });
+    })) as CreatedPost;
 
     return NextResponse.json(
       {
         message: "Post created successfully",
-        post,
+        post: {
+          ...post,
+          createdAt: post.createdAt.toISOString(),
+        },
       },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Upload route error:", err);
 
-    const message =
-      err instanceof Error ? err.message : "Upload failed";
+    const message = err instanceof Error ? err.message : "Upload failed";
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

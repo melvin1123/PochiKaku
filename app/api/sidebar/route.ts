@@ -2,12 +2,34 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
 
+type SidebarUser = {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+};
+
+type SidebarEvent = {
+  id: string;
+  title: string;
+  deadline: Date;
+};
+
+type SidebarEventResponse = {
+  id: string;
+  title: string;
+  status: "Ongoing";
+  dateLabel: string;
+};
+
 export async function GET() {
   try {
-    const user = await getCurrentUserFromToken();
+    const user = (await getCurrentUserFromToken().catch(
+      () => null,
+    )) as SidebarUser | null;
+
     const now = new Date();
 
-    const events = await prisma.event.findMany({
+    const events = (await prisma.event.findMany({
       where: {
         startDate: {
           lte: now,
@@ -16,11 +38,25 @@ export async function GET() {
           gte: now,
         },
       },
+      select: {
+        id: true,
+        title: true,
+        deadline: true,
+      },
       take: 10,
       orderBy: {
         deadline: "asc",
       },
-    });
+    })) as SidebarEvent[];
+
+    const formattedEvents: SidebarEventResponse[] = events.map(
+      (event: SidebarEvent): SidebarEventResponse => ({
+        id: event.id,
+        title: event.title,
+        status: "Ongoing",
+        dateLabel: `Ends ${event.deadline.toLocaleDateString()}`,
+      }),
+    );
 
     return NextResponse.json({
       user: user
@@ -30,14 +66,9 @@ export async function GET() {
             avatarUrl: user.avatarUrl,
           }
         : null,
-      events: events.map((event) => ({
-        id: event.id,
-        title: event.title,
-        status: "Ongoing" as const,
-        dateLabel: `Ends ${event.deadline.toLocaleDateString()}`,
-      })),
+      events: formattedEvents,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("GET /api/sidebar error:", error);
 
     return NextResponse.json({
