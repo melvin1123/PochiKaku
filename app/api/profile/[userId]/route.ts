@@ -8,6 +8,23 @@ type RouteContext = {
   }>;
 };
 
+type CurrentUser = {
+  id: string;
+};
+
+type UserPost = {
+  id: string;
+  title: string | null;
+  imageUrl: string;
+  description: string | null;
+  createdAt: Date;
+  likes: unknown[];
+  comments: unknown[];
+};
+
+const DEFAULT_AVATAR =
+  "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg";
+
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -26,7 +43,10 @@ function formatTimeAgo(date: Date): string {
 
 export async function GET(_: Request, context: RouteContext) {
   try {
-    const currentUser = await getCurrentUserFromToken().catch(() => null);
+    const currentUser = (await getCurrentUserFromToken().catch(
+      () => null,
+    )) as CurrentUser | null;
+
     const { userId } = await context.params;
 
     if (!userId) {
@@ -55,9 +75,11 @@ export async function GET(_: Request, context: RouteContext) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    const artworks = user.posts
-      .filter((post) => Boolean(post.imageUrl))
-      .map((post) => ({
+    const posts = user.posts as UserPost[];
+
+    const artworks = posts
+      .filter((post: UserPost) => Boolean(post.imageUrl))
+      .map((post: UserPost) => ({
         id: post.id,
         title: post.title ?? "Untitled",
         imageUrl: post.imageUrl,
@@ -67,7 +89,7 @@ export async function GET(_: Request, context: RouteContext) {
         createdAt: post.createdAt.toISOString(),
         artist: user.username,
         artistId: user.id,
-        avatar: user.avatarUrl ?? "/avatar.jpg",
+        avatar: user.avatarUrl ?? DEFAULT_AVATAR,
         description: post.description ?? "",
       }));
 
@@ -91,7 +113,7 @@ export async function GET(_: Request, context: RouteContext) {
           id: user.id,
           username: user.username,
           email: user.email,
-          avatarUrl: user.avatarUrl ?? "/avatar.jpg",
+          avatarUrl: user.avatarUrl ?? DEFAULT_AVATAR,
           bio: user.bio ?? "",
           isOwnProfile: currentUser ? currentUser.id === user.id : false,
           isFollowed,

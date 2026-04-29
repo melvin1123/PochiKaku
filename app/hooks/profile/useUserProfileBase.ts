@@ -7,7 +7,7 @@ import {
 import type { Artwork } from "@/app/types/artwork";
 import type { Profile, ProfileStats } from "@/app/types/profile";
 
-type UseUserProfileReturn = {
+type UseUserProfileBaseReturn = {
   profile: Profile | null;
   stats: ProfileStats | null;
   artworks: Artwork[];
@@ -27,7 +27,9 @@ async function parseJsonResponse(res: Response): Promise<unknown> {
   }
 }
 
-export function useUserProfile(userId?: string): UseUserProfileReturn {
+export function useUserProfileBase(
+  profileUrl: string,
+): UseUserProfileBaseReturn {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
@@ -38,14 +40,6 @@ export function useUserProfile(userId?: string): UseUserProfileReturn {
     try {
       setIsLoading(true);
       setError("");
-
-      if (!userId) {
-        setError("Invalid user id.");
-        setIsLoading(false);
-        return;
-      }
-
-      const profileUrl = `/api/profile/${encodeURIComponent(userId)}`;
 
       const res = await fetch(profileUrl, {
         method: "GET",
@@ -65,15 +59,12 @@ export function useUserProfile(userId?: string): UseUserProfileReturn {
       setStats(data.stats ?? null);
       setArtworks(data.artworks ?? []);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong.";
-
-      setError(message);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
       console.error("Profile fetch error:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [profileUrl]);
 
   useEffect(() => {
     void loadProfile();
@@ -101,12 +92,7 @@ export function useUserProfile(userId?: string): UseUserProfileReturn {
       const nextIsFollowed = rawData.isFollowed;
 
       setProfile((prevProfile) =>
-        prevProfile
-          ? {
-              ...prevProfile,
-              isFollowed: nextIsFollowed,
-            }
-          : prevProfile,
+        prevProfile ? { ...prevProfile, isFollowed: nextIsFollowed } : prevProfile,
       );
 
       setStats((prevStats) =>
@@ -120,10 +106,9 @@ export function useUserProfile(userId?: string): UseUserProfileReturn {
           : prevStats,
       );
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update follow state.";
-
-      setError(message);
+      setError(
+        err instanceof Error ? err.message : "Failed to update follow state.",
+      );
       console.error("Follow toggle error:", err);
     }
   }, [profile]);

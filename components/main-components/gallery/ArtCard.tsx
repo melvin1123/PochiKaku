@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { FaHeart } from "react-icons/fa";
 
 type ArtCardProps = {
@@ -21,15 +20,13 @@ export default function ArtCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg bg-[#e8dfd3] shadow transition hover:scale-105 hover:shadow-lg disabled:cursor-default"
+      className="group relative w-full cursor-pointer overflow-hidden rounded-lg bg-[#e8dfd3] shadow transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-default"
       aria-label={`View ${title} by ${artist}`}
     >
-      <Image
+      <img
         src={img}
         alt={title}
-        fill
-        className="object-cover"
-        sizes="(max-width: 768px) 50vw, 33vw"
+        className="h-auto w-full object-cover"
       />
 
       <div className="absolute right-2 top-2 rounded-full bg-white/80 p-2">

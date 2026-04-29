@@ -8,16 +8,16 @@ import { useUserProfile } from "@/app/hooks/profile/useUserProfile";
 export default function UserProfilePage() {
   const params = useParams();
 
-const id = String(params?.id ?? "");
+  const userId = String(params?.userId ?? "");
 
-const {
-  profile,
-  stats,
-  artworks,
-  isLoading,
-  error,
-  handleFollowToggle,
-} = useUserProfile(id);
+  const {
+    profile,
+    stats,
+    artworks,
+    isLoading,
+    error,
+    handleFollowToggle,
+  } = useUserProfile(userId);
 
   return (
     <MainLayout>

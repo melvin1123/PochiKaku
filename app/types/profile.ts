@@ -26,3 +26,14 @@ export type ProfileResponse = {
 export type FollowResponse = {
   isFollowed: boolean;
 };
+
+export type EditProfilePayload = {
+  username: string;
+  bio: string;
+  avatarUrl: string;
+};
+
+export type EditProfileResponse = {
+  profile?: Profile;
+  error?: string;
+};

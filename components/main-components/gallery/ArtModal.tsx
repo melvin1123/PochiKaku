@@ -248,7 +248,7 @@ export default function ArtModal({
         </div>
 
         <div className="hidden overflow-y-auto border-l border-[#e8dfd3] p-3 md:block md:w-[10%]">
-          <p className="mb-2 text-xs font-semibold">More from artist</p>
+          <p className="mb-2 text-[#3e2c23] text-xs font-semibold">More from this artist</p>
 
           <div className="space-y-2">
             {moreArtworks.map((item) => (

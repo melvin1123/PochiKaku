@@ -1,14 +1,13 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useState } from "react";
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import ProfileView from "@/components/main-components/profile/ProfileView";
-import { useUserProfile } from "@/app/hooks/profile/useUserProfile";
+import EditProfileModal from "@/components/main-components/profile/EditProfileModal";
+import { useMyProfile } from "@/app/hooks/profile/useMyProfile";
 
-export default function UserProfilePage() {
-  const params = useParams();
-
-  const userId = typeof params.userId === "string" ? params.userId : "";
+export default function MyProfilePage() {
+  const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 
   const {
     profile,
@@ -16,8 +15,9 @@ export default function UserProfilePage() {
     artworks,
     isLoading,
     error,
+    refetchProfile,
     handleFollowToggle,
-  } = useUserProfile(userId);
+  } = useMyProfile();
 
   return (
     <MainLayout>
@@ -29,8 +29,18 @@ export default function UserProfilePage() {
           isLoading={isLoading}
           error={error}
           onFollowToggle={handleFollowToggle}
+          onEditProfile={() => setIsEditOpen(true)}
         />
       </div>
+
+      {profile && (
+        <EditProfileModal
+          isOpen={isEditOpen}
+          profile={profile}
+          onClose={() => setIsEditOpen(false)}
+          onUpdated={refetchProfile}
+        />
+      )}
     </MainLayout>
   );
 }

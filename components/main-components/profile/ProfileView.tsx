@@ -12,6 +12,7 @@ type ProfileViewProps = {
   isLoading: boolean;
   error: string;
   onFollowToggle?: () => Promise<void>;
+  onEditProfile?: () => void;
 };
 
 const DEFAULT_AVATAR =
@@ -24,6 +25,7 @@ export default function ProfileView({
   isLoading,
   error,
   onFollowToggle,
+  onEditProfile,
 }: ProfileViewProps) {
   const [isFollowingBusy, setIsFollowingBusy] = useState<boolean>(false);
 
@@ -132,7 +134,9 @@ export default function ProfileView({
         {profile.isOwnProfile ? (
           <button
             type="button"
-            className="mr-3 mt-4 rounded-lg bg-[#8b6b4f] px-5 py-2 text-white transition hover:bg-[#6f533d]"
+            onClick={onEditProfile}
+            disabled={!onEditProfile}
+            className="mr-3 mt-4 rounded-lg bg-[#8b6b4f] px-5 py-2 text-white transition hover:bg-[#6f533d] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Edit Profile
           </button>

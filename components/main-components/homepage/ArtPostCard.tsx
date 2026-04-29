@@ -35,7 +35,7 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
 
   return (
     <>
-      <div className="relative mx-auto w-220 max-w-full overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-lg">
+      <div className="relative mx-auto w-260 max-w-full overflow-hidden rounded-2xl bg-white shadow-md transition-shadow hover:shadow-lg">
         <div className="flex items-start justify-between border-b border-[#e8dfd3] p-4">
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">

@@ -18,8 +18,13 @@ type QuickAction = {
   onClick?: () => void;
 };
 
+const INITIAL_POST_LIMIT = 10;
+const POSTS_INCREMENT = 10;
+
 export default function HomePage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [visiblePostCount, setVisiblePostCount] =
+    useState<number>(INITIAL_POST_LIMIT);
 
   const {
     recentArtworks,
@@ -29,6 +34,12 @@ export default function HomePage() {
     error,
     refetchPosts,
   } = useHomepagePosts();
+
+  const visiblePosts = useMemo(() => {
+    return posts.slice(0, visiblePostCount);
+  }, [posts, visiblePostCount]);
+
+  const hasMorePosts = visiblePostCount < posts.length;
 
   const quickActions = useMemo<QuickAction[]>(
     () => [
@@ -59,6 +70,10 @@ export default function HomePage() {
   const handleCloseUploadModal = (): void => {
     setIsUploadModalOpen(false);
     void refetchPosts();
+  };
+
+  const handleShowMorePosts = (): void => {
+    setVisiblePostCount((prevCount) => prevCount + POSTS_INCREMENT);
   };
 
   return (
@@ -113,7 +128,11 @@ export default function HomePage() {
         <h3 className="mb-6 text-2xl font-bold">Your Recent Uploads</h3>
 
         {isLoading ? (
-          <p className="text-[#5a4636]">Loading your recent uploads...</p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <RecentUploadSkeleton key={`recent-upload-skeleton-${index}`} />
+            ))}
+          </div>
         ) : error ? (
           <p className="text-red-600">{error}</p>
         ) : (
@@ -136,19 +155,83 @@ export default function HomePage() {
         <h3 className="mb-6 text-2xl font-bold">Discover Others</h3>
 
         {isLoading ? (
-          <p className="text-[#5a4636]">Loading posts...</p>
-        ) : error ? (
-          <p className="text-red-600">{error}</p>
-        ) : posts.length === 0 ? (
-          <p className="text-[#5a4636]">No posts found.</p>
-        ) : (
           <div className="flex flex-wrap gap-6">
-            {posts.map((post) => (
-              <ArtPostCard key={post.id} post={post} />
+            {Array.from({ length: 3 }).map((_, index) => (
+              <PostSkeleton key={`post-skeleton-${index}`} />
             ))}
           </div>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : visiblePosts.length === 0 ? (
+          <p className="text-[#5a4636]">No posts found.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-6">
+              {visiblePosts.map((post) => (
+                <ArtPostCard key={post.id} post={post} />
+              ))}
+            </div>
+
+            {hasMorePosts && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleShowMorePosts}
+                  className="rounded-xl bg-[#3e2c23] px-5 py-2.5 text-sm font-semibold text-[#f5efe6] transition hover:bg-[#5a4636]"
+                >
+                  Show More
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </MainLayout>
+  );
+}
+
+function RecentUploadSkeleton() {
+  return (
+    <div className="flex w-60 animate-pulse flex-col overflow-hidden rounded-2xl bg-[#f7f4f0] shadow-md">
+      <div className="border-b border-[#e8dfd3] p-3">
+        <div className="h-5 w-3/4 rounded bg-[#e6d3b3]" />
+      </div>
+
+      <div className="h-65 w-full bg-[#eadfce]" />
+
+      <div className="border-t border-[#e8dfd3] p-3">
+        <div className="flex gap-4">
+          <div className="h-4 w-20 rounded bg-[#e6d3b3]" />
+          <div className="h-4 w-24 rounded bg-[#e6d3b3]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostSkeleton() {
+  return (
+    <div className="mx-auto w-220 max-w-full animate-pulse overflow-hidden rounded-2xl bg-white shadow-md">
+      <div className="flex items-center gap-3 border-b border-[#e8dfd3] p-4">
+        <div className="h-10 w-10 rounded-full bg-[#e6d3b3]" />
+
+        <div className="space-y-2">
+          <div className="h-4 w-32 rounded bg-[#e6d3b3]" />
+          <div className="h-3 w-20 rounded bg-[#eadfce]" />
+        </div>
+      </div>
+
+      <div className="space-y-2 px-4 pb-3 pt-3">
+        <div className="h-5 w-1/2 rounded bg-[#e6d3b3]" />
+        <div className="h-4 w-3/4 rounded bg-[#eadfce]" />
+      </div>
+
+      <div className="h-80 w-full bg-[#eadfce]" />
+
+      <div className="flex gap-5 p-4">
+        <div className="h-4 w-20 rounded bg-[#e6d3b3]" />
+        <div className="h-4 w-24 rounded bg-[#e6d3b3]" />
+      </div>
+    </div>
   );
 }
