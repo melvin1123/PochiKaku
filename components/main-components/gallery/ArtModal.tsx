@@ -24,13 +24,13 @@ type CommentResponse = {
   comment?: CommentItem;
 };
 
-// --- Helper Functions ---
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 function parseLikeResponse(value: unknown): LikeResponse {
   if (!isRecord(value)) return {};
+
   return {
     isLiked: typeof value.isLiked === "boolean" ? value.isLiked : undefined,
     liked: typeof value.liked === "boolean" ? value.liked : undefined,
@@ -40,7 +40,9 @@ function parseLikeResponse(value: unknown): LikeResponse {
 
 function isCommentItem(value: unknown): value is CommentItem {
   if (!isRecord(value)) return false;
+
   const user = value.user;
+
   return (
     typeof value.id === "string" &&
     typeof value.content === "string" &&
@@ -54,6 +56,7 @@ function isCommentItem(value: unknown): value is CommentItem {
 
 function parseCommentResponse(value: unknown): CommentResponse {
   if (!isRecord(value)) return {};
+
   return {
     comment: isCommentItem(value.comment) ? value.comment : undefined,
   };
@@ -61,6 +64,7 @@ function parseCommentResponse(value: unknown): CommentResponse {
 
 async function parseJsonResponse(res: Response): Promise<unknown> {
   const text = await res.text();
+
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -68,7 +72,6 @@ async function parseJsonResponse(res: Response): Promise<unknown> {
   }
 }
 
-// --- Main Component ---
 export default function ArtModal({
   art,
   onClose,
@@ -82,6 +85,7 @@ export default function ArtModal({
 
   useEffect(() => {
     if (!art) return;
+
     setLikes(art.likes);
     setComments(art.commentsPreview ?? []);
     setIsLiked(art.isLiked ?? false);
@@ -90,14 +94,21 @@ export default function ArtModal({
 
   const handleLike = async (): Promise<void> => {
     if (!art) return;
+
     try {
       const res = await fetch(`/api/posts/${art.id}/like`, {
         method: "POST",
         credentials: "include",
       });
+
       const rawData = await parseJsonResponse(res);
-      if (!res.ok) throw new Error("Like failed.");
+
+      if (!res.ok) {
+        throw new Error("Like failed.");
+      }
+
       const data = parseLikeResponse(rawData);
+
       setIsLiked(data.isLiked ?? data.liked ?? false);
       setLikes(data.likes ?? likes);
     } catch (err: unknown) {
@@ -107,18 +118,31 @@ export default function ArtModal({
 
   const handleComment = async (): Promise<void> => {
     const content = newComment.trim();
+
     if (!art || !content) return;
+
     try {
       const res = await fetch(`/api/posts/${art.id}/comments`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ content }),
       });
+
       const rawData = await parseJsonResponse(res);
-      if (!res.ok) throw new Error("Comment failed.");
+
+      if (!res.ok) {
+        throw new Error("Comment failed.");
+      }
+
       const data = parseCommentResponse(rawData);
-      if (!data.comment) throw new Error("Invalid comment response.");
+
+      if (!data.comment) {
+        throw new Error("Invalid comment response.");
+      }
+
       setComments((prev) => [...prev, data.comment as CommentItem]);
       setNewComment("");
     } catch (err: unknown) {
@@ -132,137 +156,130 @@ export default function ArtModal({
     <Dialog
       open={Boolean(art)}
       onClose={onClose}
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm"
     >
-      <div className="flex min-h-screen items-start justify-center p-0 sm:items-center sm:p-4">
-        <Dialog.Panel className="relative flex w-full max-w-6xl flex-col bg-[#f5efe6] shadow-2xl sm:rounded-3xl md:h-[90vh] md:flex-row md:overflow-hidden">
-          
-          {/* Close Button - Fixed on mobile to stay above the scrollable content */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="fixed right-4 top-4 z- flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/80 md:absolute md:left-4 md:top-4 md:right-auto"
-          >
-            ✕
-          </button>
+      <Dialog.Panel className="relative flex h-full w-full flex-col overflow-y-auto bg-[#f5efe6] md:flex-row md:overflow-hidden">
+        
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute left-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+          aria-label="Close modal"
+        >
+          ✕
+        </button>
 
-          {/* 1. TOP SECTION (Mobile) / LEFT SECTION (Desktop): THE IMAGE */}
-          <div className="relative flex w-full items-center justify-center bg-[#111] md:h-full md:w-[65%]">
-            <Image
-              src={art.image}
-              alt={art.title}
-              width={1400}
-              height={1400}
-              className="h-auto max-h-[75vh] w-full object-contain md:max-h-full"
-              priority
-            />
+        {/* Image Section */}
+        <div className="flex w-full flex-shrink-0 items-center justify-center bg-black md:h-full md:w-[60%]">
+          <Image
+            src={art.image}
+            alt={art.title}
+            width={1600}
+            height={1600}
+            className="h-full w-full object-contain"
+            sizes="(max-width: 768px) 100vw, 60vw"
+            priority
+          />
+        </div>
+
+        {/* Info & Comments Section */}
+        <div className="flex w-full flex-col border-l border-[#e8dfd3] text-[#3e2c23] md:h-full md:w-[30%]">
+          <div className="border-b border-[#e8dfd3] p-6">
+            <h2 className="text-2xl font-bold">{art.title}</h2>
+            <p className="text-md text-[#5a4636]">by {art.artist}</p>
+            <p className="mt-4 text-sm leading-relaxed text-[#5a4636]">{art.description}</p>
           </div>
 
-          {/* 2. BOTTOM SECTION (Mobile) / RIGHT SECTION (Desktop): CONTENT */}
-          <div className="flex w-full flex-col bg-[#f5efe6] text-[#3e2c23] md:w-[35%] md:border-l md:border-[#e8dfd3]">
-            
-            {/* Sticky Header: Artist & Title */}
-            <div className="sticky top-0 z-10 border-b border-[#e8dfd3] bg-[#f5efe6]/95 p-5 backdrop-blur-md">
-              <h2 className="text-xl font-bold tracking-tight">{art.title}</h2>
-              <p className="text-sm font-medium text-[#5a4636]">by {art.artist}</p>
-            </div>
+          <div className="flex items-center gap-6 border-b border-[#e8dfd3] p-4 px-6">
+            <button
+              type="button"
+              onClick={handleLike}
+              className="flex items-center gap-2 font-medium"
+            >
+              <FaHeart className={isLiked ? "text-red-500" : "text-[#5a4636]"} />
+              {likes}
+            </button>
 
-            {/* Scrollable Interaction Area */}
-            <div className="flex-1 p-5 md:overflow-y-auto">
-              <p className="mb-6 text-sm leading-relaxed text-[#5a4636]">
-                {art.description}
-              </p>
-
-              {/* Like/Comment Count Bar */}
-              <div className="mb-6 flex items-center gap-6 border-y border-[#e8dfd3] py-4">
-                <button
-                  type="button"
-                  onClick={handleLike}
-                  className="flex items-center gap-2 text-sm font-bold transition hover:scale-105"
-                >
-                  <FaHeart className={isLiked ? "text-red-500" : "text-[#3e2c23]"} size={20} />
-                  {likes}
-                </button>
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <FaComment size={20} className="text-[#3e2c23]" />
-                  {comments.length}
-                </div>
-              </div>
-
-              {/* Comments Section */}
-              <div className="space-y-5">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#9a8878]">Comments</p>
-                {comments.length === 0 ? (
-                  <p className="text-sm italic text-[#9a8878]">Be the first to comment...</p>
-                ) : (
-                  comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-3">
-                      <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                        <Image src={comment.user.avatarUrl} alt="" fill className="object-cover" />
-                      </div>
-                      <div className="flex-1 rounded-2xl bg-white/50 p-3 shadow-sm">
-                        <p className="text-xs font-bold">{comment.user.username}</p>
-                        <p className="mt-0.5 text-sm leading-snug text-[#5a4636]">{comment.content}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Mobile Padding: Keeps the last comment from being hidden by the sticky input */}
-              <div className="h-24 md:hidden" />
-            </div>
-
-            {/* Sticky Comment Form: Sits at the bottom of the modal window */}
-            <div className="sticky bottom-0 z-20 border-t border-[#e8dfd3] bg-[#f5efe6] p-4 pb-6 sm:pb-4">
-              <form
-                className="flex gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleComment();
-                }}
-              >
-                <input
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
-                  className="flex-1 rounded-full border border-[#d6c3a3] bg-white px-5 py-2.5 text-sm outline-none transition focus:border-[#3e2c23] focus:ring-1 focus:ring-[#3e2c23]/10"
-                />
-                <button
-                  type="submit"
-                  disabled={!newComment.trim()}
-                  className="rounded-full bg-[#3e2c23] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-black active:scale-95 disabled:opacity-40"
-                >
-                  Post
-                </button>
-              </form>
+            <div className="flex items-center gap-2 font-medium">
+              <FaComment className="text-[#5a4636]" />
+              {comments.length}
             </div>
           </div>
 
-          {/* 3. SIDEBAR (Desktop Only): More Artworks */}
-          {moreArtworks.length > 0 && (
-            <div className="hidden overflow-y-auto border-l border-[#e8dfd3] bg-[#f5efe6]/40 p-4 md:block md:w-[80px] lg:w-[100px]">
-              <p className="mb-4 text-center text-[10px] font-bold uppercase tracking-tighter text-[#9a8878]">More</p>
-              <div className="space-y-3">
-                {moreArtworks.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => onChangeArt(item)}
-                    className="group relative aspect-square w-full overflow-hidden rounded-xl border border-[#e8dfd3] bg-white shadow-sm"
-                  >
-                    <Image 
-                      src={item.image} 
-                      alt={item.title} 
-                      fill 
-                      className="object-cover transition group-hover:scale-110" 
+          <div className="flex-1 space-y-4 overflow-y-auto p-6">
+            {comments.length === 0 ? (
+              <p className="text-sm italic text-[#5a4636]">No comments yet. Be the first to chime in!</p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border border-[#d6c3a3]">
+                    <Image
+                      src={comment.user.avatarUrl}
+                      alt={comment.user.username}
+                      fill
+                      className="object-cover"
+                      sizes="32px"
                     />
-                  </button>
-                ))}
-              </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#3e2c23]">
+                      {comment.user.username}
+                    </span>
+                    <p className="text-sm text-[#5a4636]">{comment.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="border-t border-[#e8dfd3] bg-[#f5efe6] p-4">
+            <div className="flex gap-2">
+              <input
+                value={newComment}
+                onChange={(event) => setNewComment(event.target.value)}
+                placeholder="Write a comment..."
+                className="flex-1 rounded-lg border border-[#d6c3a3] bg-white px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#3e2c23]"
+              />
+              <button
+                type="button"
+                onClick={handleComment}
+                className="rounded-lg bg-[#3e2c23] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#2a1d17]"
+              >
+                Post
+              </button>
             </div>
-          )}
-        </Dialog.Panel>
-      </div>
+          </div>
+        </div>
+
+        {/* More Artworks Sidebar */}
+        <div className="w-full border-l border-[#e8dfd3] p-6 md:h-full md:w-[10%] md:overflow-y-auto">
+          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#3e2c23]">
+            More
+          </p>
+
+          <div className="flex flex-row gap-3 overflow-x-auto pb-4 md:flex-col md:overflow-x-visible md:pb-0">
+            {moreArtworks.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  onChangeArt(item);
+                  document.querySelector('.relative.flex.h-full')?.scrollTo(0,0);
+                }}
+                className="relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-lg border border-[#e8dfd3] md:w-full"
+              >
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover transition-transform duration-300 hover:scale-110"
+                  sizes="(max-width: 768px) 80px, 10vw"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      </Dialog.Panel>
     </Dialog>
   );
 }
