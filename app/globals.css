@@ -22,13 +22,14 @@ body {
   color: var(--foreground);
 }
 
-.sidebar-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.sidebar-scroll::-webkit-scrollbar {
-  display: none;
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 .texture-paper {
