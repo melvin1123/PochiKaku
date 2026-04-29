@@ -11,8 +11,7 @@ const INITIAL_ARTWORK_LIMIT = 50;
 const ARTWORK_INCREMENT = 50;
 
 export default function GalleryPage() {
-  const [visibleArtworkCount, setVisibleArtworkCount] =
-    useState<number>(INITIAL_ARTWORK_LIMIT);
+  const [visibleArtworkCount, setVisibleArtworkCount] = useState<number>(INITIAL_ARTWORK_LIMIT);
 
   const {
     filteredItems,
@@ -42,18 +41,22 @@ export default function GalleryPage() {
 
   return (
     <MainLayout>
-      <div className="mb-4 ml-8 mr-8 mt-6 flex items-end justify-between">
+      {/* Header Section: Stacked on mobile, side-by-side on md+ */}
+      <div className="mx-4 mb-4 mt-6 flex flex-col gap-4 md:mx-8 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold">Gallery</h2>
-          <p className="mt-1 text-[#5a4636]">
+          <h2 className="text-2xl font-bold md:text-3xl">Gallery</h2>
+          <p className="mt-1 text-sm text-[#5a4636] md:text-base">
             Explore the latest artworks from the community.
           </p>
         </div>
 
-        <SearchBar value={search} onChange={handleSearchChange} />
+        {/* SearchBar will now appear below the text on mobile */}
+        <div className="w-full md:w-auto">
+          <SearchBar value={search} onChange={handleSearchChange} />
+        </div>
       </div>
 
-      <section className="ml-4 mr-4 flex-1 p-4">
+      <section className="px-2 md:px-8 flex-1">
         {isLoading ? (
           <GallerySkeleton />
         ) : error ? (
@@ -65,7 +68,7 @@ export default function GalleryPage() {
             <GalleryGrid items={visibleItems} onSelect={setSelectedArt} />
 
             {hasMoreArtworks && (
-              <div className="mt-8 flex justify-center">
+              <div className="mt-8 flex justify-center pb-10">
                 <button
                   type="button"
                   onClick={handleShowMore}
@@ -90,33 +93,23 @@ export default function GalleryPage() {
 }
 
 function GallerySkeleton() {
-  const skeletonHeights = [
-    "h-36",
-    "h-52",
-    "h-40",
-    "h-32",
-    "h-48",
-    "h-36",
-    "h-56",
-    "h-40",
-    "h-32",
-    "h-48",
-  ];
+  const skeletonHeights = ["h-32", "h-40", "h-36", "h-48", "h-32", "h-40"];
 
   return (
-    <div className="columns-1 gap-6 sm:columns-2 lg:columns-3 xl:columns-5">
+    /* Changed columns-1 to columns-3 for mobile view */
+    <div className="columns-3 gap-2 sm:gap-6 lg:columns-4 xl:columns-5">
       {skeletonHeights.map((height, index) => (
         <div
           key={`gallery-skeleton-${index}`}
-          className="mb-6 break-inside-avoid overflow-hidden rounded-lg border border-[#eee5da] bg-[#fbf8f4] shadow-sm"
+          className="mb-2 break-inside-avoid overflow-hidden rounded-lg border border-[#eee5da] bg-[#fbf8f4] shadow-sm md:mb-6"
         >
           <div
             className={`${height} animate-pulse bg-gradient-to-r from-[#f2ebe2] via-[#e8ded2] to-[#f2ebe2] bg-[length:200%_100%]`}
           />
 
-          <div className="space-y-2 bg-[#fbf8f4] p-3">
-            <div className="h-3.5 w-3/4 animate-pulse rounded bg-gradient-to-r from-[#f3ece3] via-[#e7dcd0] to-[#f3ece3] bg-[length:200%_100%]" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-gradient-to-r from-[#f5efe8] via-[#ebe1d6] to-[#f5efe8] bg-[length:200%_100%]" />
+          {/* Hidden labels on mobile to keep 3 columns clean, visible on md+ */}
+          <div className="hidden space-y-2 bg-[#fbf8f4] p-3 md:block">
+            <div className="h-3.5 w-3/4 animate-pulse rounded bg-[#e7dcd0]" />
           </div>
         </div>
       ))}

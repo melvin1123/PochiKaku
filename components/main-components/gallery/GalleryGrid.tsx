@@ -9,11 +9,12 @@ type GalleryGridProps = {
   onSelect?: (art: GalleryItem) => void;
 };
 
+// Adjusted for 3 columns on small screens
 const BREAKPOINT_COLUMNS = {
   default: 5,
-  1024: 3,
-  768: 2,
-  640: 1,
+  1100: 4,
+  768: 3, // Tablets and large phones get 3 columns
+  500: 3, // Small mobile phones now get 3 columns
 };
 
 export default function GalleryGrid({
@@ -31,8 +32,9 @@ export default function GalleryGrid({
   return (
     <Masonry
       breakpointCols={BREAKPOINT_COLUMNS}
-      className="flex gap-6"
-      columnClassName="space-y-6"
+      /* Changed gap-6 to a responsive gap: smaller on mobile, larger on desktop */
+      className="flex gap-2 md:gap-6"
+      columnClassName="space-y-2 md:space-y-6"
     >
       {items.map((art) => (
         <ArtCard
