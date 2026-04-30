@@ -16,19 +16,12 @@ type UserPost = {
   comments: unknown[];
 };
 
-type EditProfileBody = {
-  username?: unknown;
-  bio?: unknown;
-  avatarUrl?: unknown;
-};
-
 const DEFAULT_AVATAR =
   "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg";
 
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -39,20 +32,6 @@ function formatTimeAgo(date: Date): string {
   if (days < 7) return `${days}d ago`;
 
   return date.toLocaleDateString();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function parseEditProfileBody(value: unknown): EditProfileBody {
-  if (!isRecord(value)) return {};
-
-  return {
-    username: value.username,
-    bio: value.bio,
-    avatarUrl: value.avatarUrl,
-  };
 }
 
 export async function GET() {
@@ -67,16 +46,9 @@ export async function GET() {
       where: { id: currentUser.id },
       include: {
         posts: {
-          where: {
-            type: "post",
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          include: {
-            likes: true,
-            comments: true,
-          },
+          where: { type: "post" },
+          orderBy: { createdAt: "desc" },
+          include: { likes: true, comments: true },
         },
         followers: true,
         following: true,
@@ -88,10 +60,9 @@ export async function GET() {
     }
 
     const posts = user.posts as UserPost[];
-
     const artworks = posts
-      .filter((post: UserPost) => Boolean(post.imageUrl))
-      .map((post: UserPost) => ({
+      .filter((post) => Boolean(post.imageUrl))
+      .map((post) => ({
         id: post.id,
         title: post.title ?? "Untitled",
         imageUrl: post.imageUrl,
@@ -122,54 +93,53 @@ export async function GET() {
       },
       artworks,
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("GET /api/profile/me error:", error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to load profile",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to load profile" }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
-
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rawBody: unknown = await req.json();
-    const body = parseEditProfileBody(rawBody);
+    // 1. Switch from req.json() to req.formData()
+    const formData = await req.formData();
+    
+    const username = formData.get("username")?.toString().trim();
+    const bio = formData.get("bio")?.toString().trim();
+    const avatarFile = formData.get("avatar") as File | null;
 
-    const username =
-      typeof body.username === "string" ? body.username.trim() : "";
+    // 2. Prepare update data
+    const updateData: any = {};
 
-    const bio = typeof body.bio === "string" ? body.bio.trim() : "";
-
-    const avatarUrl =
-      typeof body.avatarUrl === "string" ? body.avatarUrl.trim() : "";
-
-    if (!username) {
-      return NextResponse.json(
-        { error: "Username is required." },
-        { status: 400 },
-      );
+    if (username !== undefined) {
+      if (username !== "") {
+        updateData.username = username;
+      } else {
+        return NextResponse.json({ error: "Username cannot be empty." }, { status: 400 });
+      }
     }
 
+    if (bio !== undefined) {
+      updateData.bio = bio;
+    }
+
+    // 3. Handle Avatar Upload (Optional Logic)
+    if (avatarFile) {
+      // Here you would typically upload to Cloudinary/S3 
+      // and get a URL back. For now, we'll assume you just update text
+      // updateData.avatarUrl = uploadedImageUrl;
+      console.log("Avatar file received:", avatarFile.name);
+    }
+
+    // 4. Execute Update
     const updatedUser = await prisma.user.update({
-      where: {
-        id: currentUser.id,
-      },
-      data: {
-        username,
-        bio,
-        avatarUrl: avatarUrl || null,
-      },
+      where: { id: currentUser.id },
+      data: updateData,
       select: {
         id: true,
         username: true,
@@ -190,15 +160,11 @@ export async function PATCH(req: Request) {
         isFollowed: false,
       },
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("PATCH /api/profile/me error:", error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to update profile.",
-      },
-      { status: 500 },
-    );
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Username is already taken." }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Failed to update profile." }, { status: 500 });
   }
 }
