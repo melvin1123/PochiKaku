@@ -11,9 +11,11 @@ const DEFAULT_AVATAR =
 
 type ArtPostCardProps = {
   post: Post;
+  // ADDED: Pass the logged-in user's ID down to the card
+  currentUserId?: string | null; 
 };
 
-export default function ArtPostCard({ post }: ArtPostCardProps) {
+export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
   const {
     isFollowed,
     isLiked,
@@ -32,6 +34,9 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
     handleLikeToggle,
     handleCommentSubmit,
   } = useArtPostCard(post);
+
+  // FIX: Safely check if the current user owns this post
+  const isOwnPost = currentUserId === post.artistId;
 
   return (
     <>
@@ -59,7 +64,8 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                 >
                   {post.artist}
                 </Link>
-                {isFollowed && (
+                {/* Hides badge if it's their own post */}
+                {isFollowed && !isOwnPost && (
                   <span className="rounded-full bg-[#f3eee8] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#5a4636]">
                     Following
                   </span>
@@ -80,13 +86,16 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
 
             {showMenu && (
               <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-[#e8dfd3] bg-white shadow-lg">
-                <button
-                  type="button"
-                  onClick={handleFollowToggle}
-                  className="block w-full px-4 py-3 text-left text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
-                >
-                  {isFollowed ? "Unfollow" : "Follow"}
-                </button>
+                {/* Hides Follow/Unfollow if it's their own post */}
+                {!isOwnPost && (
+                  <button
+                    type="button"
+                    onClick={handleFollowToggle}
+                    className="block w-full px-4 py-3 text-left text-sm text-[#3e2c23] transition hover:bg-[#f7f3ee]"
+                  >
+                    {isFollowed ? "Unfollow" : "Follow"}
+                  </button>
+                )}
                 <Link
                   href={`/profile/${post.artistId}`}
                   onClick={() => setShowMenu(false)}
@@ -177,9 +186,8 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
               ×
             </button>
 
-            {/* A. MOBILE LAYOUT: Order matters here for correct flow */}
+            {/* A. MOBILE LAYOUT */}
             <div className="flex w-full flex-col lg:hidden">
-              {/* 1. Image Section */}
               <div className="relative flex min-h-[300px] w-full items-center justify-center bg-black">
                 <Image
                   src={post.image}
@@ -191,7 +199,6 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                 />
               </div>
 
-              {/* 2. Artist Header Section (Now sits neatly below the image) */}
               <div className="sticky top-0 z-10 border-b border-[#e8dfd3] bg-white p-4">
                 <div className="flex items-center gap-3">
                   <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
@@ -204,7 +211,6 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                 </div>
               </div>
 
-              {/* 3. Content Area */}
               <div className="p-4">
                 <h3 className="text-lg font-bold text-[#3e2c23]">{post.title}</h3>
                 {post.description && (
@@ -222,7 +228,6 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                   </div>
                 </div>
 
-                {/* Comments List */}
                 <div className="mt-6 space-y-4">
                   {comments.length === 0 ? (
                     <p className="text-sm text-[#6b5a4d]">No comments yet.</p>
@@ -240,15 +245,12 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                     ))
                   )}
                 </div>
-
-                {/* EXTRA SPACE: Safe area for browser menus */}
                 <div className="h-28" />
               </div>
             </div>
 
-            {/* B. DESKTOP LAYOUT (Unchanged, remains side-by-side) */}
+            {/* B. DESKTOP LAYOUT */}
             <div className="hidden h-full w-full lg:flex lg:flex-row">
-              {/* Left Side: Image Section */}
               <div className="relative flex h-full flex-1 items-center justify-center bg-black">
                 <Image
                   src={post.image}
@@ -260,9 +262,7 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                 />
               </div>
 
-              {/* Right Side: Interaction Section */}
               <div className="flex h-full w-[420px] flex-col border-l border-[#e8dfd3]">
-                {/* Header */}
                 <div className="sticky top-0 z-10 border-b border-[#e8dfd3] bg-white p-4">
                   <div className="flex items-center gap-3">
                     <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
@@ -275,7 +275,6 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                   </div>
                 </div>
 
-                {/* Content / Scrollable Area */}
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <h3 className="text-lg font-bold text-[#3e2c23]">{post.title}</h3>
                   {post.description && (
@@ -291,7 +290,6 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                       <FaComment /> {commentCount} Comments
                     </div>
                   </div>
-                  {/* Comments List */}
                   <div className="mt-6 space-y-4">
                     {comments.length === 0 ? (
                       <p className="text-sm text-[#6b5a4d]">No comments yet.</p>
@@ -310,12 +308,10 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                     )}
                   </div>
                 </div>
-
-                {/* EXTRA SPACE can be smaller here if needed, or removed */}
               </div>
             </div>
 
-            {/* 3. Common Sticky Comment Input (Stays fixed at the bottom of the modal window) */}
+            {/* 3. Common Sticky Comment Input */}
             <div className="sticky bottom-0 z-20 border-t border-[#e8dfd3] bg-white p-4">
               <form onSubmit={handleCommentSubmit} className="flex gap-2">
                 <input
@@ -333,7 +329,7 @@ export default function ArtPostCard({ post }: ArtPostCardProps) {
                   {isSubmittingComment ? "Posting..." : "Post"}
                 </button>
               </form>
-              <div className="h-2 md:hidden" /> {/* Small visual buffer */}
+              <div className="h-2 md:hidden" />
             </div>
           </div>
         </div>

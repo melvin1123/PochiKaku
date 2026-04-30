@@ -16,6 +16,7 @@ export type PostItem = {
   createdAt?: string;
   isFollowed?: boolean;
   isLiked?: boolean;
+  isOwnProfile?: boolean;
   commentsPreview?: CommentItem[];
 };
 
