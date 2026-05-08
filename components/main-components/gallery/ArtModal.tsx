@@ -83,6 +83,7 @@ export default function ArtModal({
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState<string>("");
 
+  // Sync state when a new artwork is loaded into the modal
   useEffect(() => {
     if (!art) return;
 
@@ -91,6 +92,32 @@ export default function ArtModal({
     setIsLiked(art.isLiked ?? false);
     setNewComment("");
   }, [art]);
+
+  // Handle Mobile Back Button
+  useEffect(() => {
+    if (!art) return;
+
+    // Push a state to the history stack when the modal opens
+    window.history.pushState({ isArtModalOpen: true }, "");
+
+    const handlePopState = () => {
+      // When the user presses the back button, trigger the close function
+      onClose();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      
+      // If the modal was closed via UI (e.g., clicking "X" or outside the modal),
+      // the history state is still there. We must go back once to clear it
+      // so the user's normal browser history isn't broken.
+      if (window.history.state?.isArtModalOpen) {
+        window.history.back();
+      }
+    };
+  }, [art, onClose]);
 
   const handleLike = async (): Promise<void> => {
     if (!art) return;
