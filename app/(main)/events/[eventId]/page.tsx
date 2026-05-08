@@ -20,7 +20,19 @@ interface PageProps {
   }>;
 }
 
-// Interface representing the shape of data returned by Prisma
+// Sub-interface for comment structure
+interface CommentWithUser {
+  id: string;
+  content: string;
+  createdAt: Date;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+  };
+}
+
+// Deeply nested interface to match Prisma's 'include' structure
 interface PrismaSubmission {
   id: string;
   caption: string | null;
@@ -37,16 +49,7 @@ interface PrismaSubmission {
     description: string | null;
     imageUrl: string;
     likes: { userId: string }[];
-    comments: {
-      id: string;
-      content: string;
-      createdAt: Date;
-      user: {
-        id: string;
-        username: string;
-        avatarUrl: string | null;
-      };
-    }[];
+    comments: CommentWithUser[];
   };
 }
 
@@ -79,7 +82,7 @@ async function getEventDetails(eventId: string) {
           },
           post: {
             include: {
-              likes: { select: { userId: true } }, // Explicit select to fix any types
+              likes: { select: { userId: true } },
               comments: {
                 include: {
                   user: {
@@ -108,12 +111,13 @@ async function getEventDetails(eventId: string) {
     status = "Ongoing";
   }
 
+  // Explicitly typing 'p' and 's' to avoid implicit any
   const hasJoined = currentUser
-    ? event.participants.some((p) => p.user.id === currentUser.id)
+    ? event.participants.some((p: { user: { id: string } }) => p.user.id === currentUser.id)
     : false;
 
   const hasSubmitted = currentUser
-    ? event.submissions.some((s) => s.userId === currentUser.id)
+    ? event.submissions.some((s: { userId: string }) => s.userId === currentUser.id)
     : false;
 
   return {
@@ -145,18 +149,17 @@ async function getEventDetails(eventId: string) {
     canSubmit: hasJoined,
     hasSubmitted,
 
-    participants: event.participants.map((p) => ({
+    participants: event.participants.map((p: { user: { id: string; username: string } }) => ({
       id: p.user.id,
       username: p.user.username,
     })),
 
-    referenceImages: event.referenceImages.map((image) => ({
+    referenceImages: event.referenceImages.map((image: { id: string | number; imageUrl: string }) => ({
       id: image.id,
       imageUrl: image.imageUrl,
     })),
 
-    // Cast specifically to our custom interface to satisfy the compiler
-    submissions: (event.submissions as unknown as PrismaSubmission[]).map((submission) => ({
+    submissions: (event.submissions as unknown as PrismaSubmission[]).map((submission: PrismaSubmission) => ({
       id: submission.id,
       caption: submission.caption,
       createdAt: submission.createdAt.toISOString(),
@@ -175,7 +178,7 @@ async function getEventDetails(eventId: string) {
         isLiked: currentUser
           ? submission.post.likes.some((like: { userId: string }) => like.userId === currentUser.id)
           : false,
-        comments: submission.post.comments.map((comment) => ({
+        comments: submission.post.comments.map((comment: CommentWithUser) => ({
           id: comment.id,
           content: comment.content,
           createdAt: comment.createdAt.toISOString(),
