@@ -20,7 +20,7 @@ interface PageProps {
   }>;
 }
 
-// Deeply nested interface to match Prisma's 'include' structure
+// Interface representing the shape of data returned by Prisma
 interface PrismaSubmission {
   id: string;
   caption: string | null;
@@ -36,7 +36,6 @@ interface PrismaSubmission {
     title: string | null;
     description: string | null;
     imageUrl: string;
-    createdAt: Date;
     likes: { userId: string }[];
     comments: {
       id: string;
@@ -80,7 +79,7 @@ async function getEventDetails(eventId: string) {
           },
           post: {
             include: {
-              likes: true,
+              likes: { select: { userId: true } }, // Explicit select to fix any types
               comments: {
                 include: {
                   user: {
@@ -156,6 +155,7 @@ async function getEventDetails(eventId: string) {
       imageUrl: image.imageUrl,
     })),
 
+    // Cast specifically to our custom interface to satisfy the compiler
     submissions: (event.submissions as unknown as PrismaSubmission[]).map((submission) => ({
       id: submission.id,
       caption: submission.caption,
@@ -173,7 +173,7 @@ async function getEventDetails(eventId: string) {
         likesCount: submission.post.likes.length,
         commentsCount: submission.post.comments.length,
         isLiked: currentUser
-          ? submission.post.likes.some((like) => like.userId === currentUser.id)
+          ? submission.post.likes.some((like: { userId: string }) => like.userId === currentUser.id)
           : false,
         comments: submission.post.comments.map((comment) => ({
           id: comment.id,
@@ -196,7 +196,6 @@ async function getEventDetails(eventId: string) {
 export default async function EventDetailsPage({ params }: PageProps) {
   const resolvedParams = await params;
 
-  // Handles varying dynamic parameter names defined in your folder structure
   const eventId = resolvedParams.eventId ?? resolvedParams.id ?? resolvedParams.userId;
 
   if (!eventId) {
@@ -214,7 +213,6 @@ export default async function EventDetailsPage({ params }: PageProps) {
       <section className="px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-6">
           
-          {/* Back Navigation */}
           <Link
             href="/events"
             className="inline-flex items-center gap-2 text-sm font-medium text-[#8a6f5a] transition-colors hover:text-[#3e2c23]"
@@ -223,7 +221,6 @@ export default async function EventDetailsPage({ params }: PageProps) {
             Back to Events
           </Link>
 
-          {/* Event Header Banner */}
           <div className="overflow-hidden rounded-3xl border border-[#dccfbe] bg-[#f5efe6] shadow-sm">
             <div className="relative h-64 w-full sm:h-80">
               <Image
@@ -258,7 +255,6 @@ export default async function EventDetailsPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Submission and Interaction Section */}
           <EventDetailsClient
             eventId={event.id}
             initialSubmissions={event.submissions}
