@@ -18,15 +18,13 @@ export default function AuthPage() {
 
   return (
     <main className="min-h-screen grid md:grid-cols-2 bg-gradient-to-br from-[#f5efe6] to-[#e8dfd3] text-[#3e2c23]">
-
-          {/* Top-left branding */}
-        <div className="absolute top-4 left-4 text-2xl font-bold ml-4 z-50">
-            PochiKaku
-        </div>
+      {/* Top-left branding */}
+      <div className="absolute top-4 left-4 text-2xl font-bold ml-4 z-50">
+        PochiKaku
+      </div>
 
       {/* LEFT SIDE VISUAL */}
       <div className="hidden md:flex relative items-center justify-center overflow-hidden">
-        {/* Background Image */}
         <Image
           src="/backgrounds/lp-bg-img3.jpg"
           alt="bg"
@@ -34,43 +32,28 @@ export default function AuthPage() {
           className="object-cover opacity-20 blur-xl"
         />
         
-        {/* Floating Cards */}
         {floatingCards.map((card, i) => (
-        <motion.div
+          <motion.div
             key={card.id}
             className={`absolute bg-white p-3 rounded-2xl shadow w-40
             ${i === 0 ? "top-50 left-10" : ""}
             ${i === 1 ? "top-20 right-80" : ""}
             ${i === 2 ? "bottom-30 right-10" : ""}
             ${i === 3 ? "bottom-50 right-40" : ""}
-
             `}
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 6, repeat: Infinity, repeatType: "mirror", delay: i * 0.3 }}
-        >
-            {/* IMAGE */}
+          >
             <div className="h-24 w-full rounded-xl mb-2 relative overflow-hidden">
-            <Image
-                src={card.img}
-                alt={card.title}
-                fill
-                className="object-cover"
-            />
+              <Image src={card.img} alt={card.title} fill className="object-cover" />
             </div>
-
-            {/* CARD TITLE */}
             <p className="text-sm font-medium text-[#3e2c23]">{card.title}</p>
-        </motion.div>
+          </motion.div>
         ))}
 
-        {/* Text Overlay */}
         <div className="absolute bottom-16 left-12 max-w-sm text-[#3e2c23] drop-shadow-md">
-          <h2 className="text-3xl font-bold leading-tight">
-            Share your art
-          </h2>
-          <p className="text-base text-[#5a4636] mt-2">
-            with people who truly get it.
-          </p>
+          <h2 className="text-3xl font-bold leading-tight">Share your art</h2>
+          <p className="text-base text-[#5a4636] mt-2">with people who truly get it.</p>
         </div>
       </div>
 
@@ -106,56 +89,57 @@ export default function AuthPage() {
 }
 
 function LoginForm() {
-  const router = useRouter(); // ✅ FIXED (inside component)
-
+  const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false); // Added loading state
 
-const handleSubmit = async () => {
-  const result = loginSchema.safeParse(form);
-
-  if (!result.success) {
-    setErrors(result.error.flatten().fieldErrors);
-    return;
-  }
-
-  setErrors({});
-
-  try {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setErrors({ general: data.error });
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault(); // Prevent default form submission
+    
+    const result = loginSchema.safeParse(form);
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors);
       return;
     }
 
-    router.push("/homepage");
-    router.refresh();
+    setErrors({});
+    setIsLoading(true);
 
-  } catch (err) {
-    console.error(err);
-    setErrors({ general: "Something went wrong" });
-  }
-};
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrors({ general: data.error });
+        setIsLoading(false);
+        return;
+      }
+
+      router.push("/homepage");
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setErrors({ general: "Something went wrong" });
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <input
           placeholder="Email"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          disabled={isLoading}
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email[0]}</p>}
       </div>
@@ -166,85 +150,88 @@ const handleSubmit = async () => {
           placeholder="Password"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, password: e.target.value })}
+          disabled={isLoading}
         />
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password[0]}</p>}
       </div>
 
       <button
-        onClick={handleSubmit}
-        className="w-full bg-[#6b4f3b] text-white py-3 rounded-xl hover:-translate-y-0.5 transition"
+        type="submit"
+        disabled={isLoading}
+        className="w-full bg-[#6b4f3b] text-white py-3 rounded-xl hover:-translate-y-0.5 transition disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center"
       >
-        Login
+        {isLoading ? (
+          <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          "Login"
+        )}
       </button>
-            {errors.general && (
-        <p className="text-red-500 text-sm">{errors.general}</p>
-      )}
-    </div>
+      {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
+    </form>
   );
 }
 
 function RegisterForm() {
   const [form, setForm] = useState({
-  username: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
-
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false); // Added loading state
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    
     if (form.password !== form.confirmPassword) {
-    setErrors({ confirmPassword: ["Passwords do not match"] });
-    return;
-  }
-  const result = registerSchema.safeParse(form);
-
-  if (!result.success) {
-    setErrors(result.error.flatten().fieldErrors);
-    return;
-  }
-
-  setErrors({});
-
-  try {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: form.username.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setErrors({ general: data.error });
+      setErrors({ confirmPassword: ["Passwords do not match"] });
       return;
     }
 
-    console.log("Register success:", data);
+    const result = registerSchema.safeParse(form);
+    if (!result.success) {
+      setErrors(result.error.flatten().fieldErrors);
+      return;
+    }
 
-    // ✅ redirect to login (or auto-login later)
-    window.location.href = "/auth";
+    setErrors({});
+    setIsLoading(true);
 
-  } catch (err) {
-    console.error(err);
-    setErrors({ general: "Something went wrong" });
-  }
-};
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.username.trim(),
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrors({ general: data.error });
+        setIsLoading(false);
+        return;
+      }
+
+      window.location.href = "/auth";
+    } catch (err) {
+      console.error(err);
+      setErrors({ general: "Something went wrong" });
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-3 ">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <input
           placeholder="Artist Name"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, username: e.target.value })}
+          disabled={isLoading}
         />
         {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username[0]}</p>}
       </div>
@@ -254,6 +241,7 @@ function RegisterForm() {
           placeholder="Email"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          disabled={isLoading}
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email[0]}</p>}
       </div>
@@ -264,6 +252,7 @@ function RegisterForm() {
           placeholder="Password"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
           onChange={(e) => setForm({ ...form, password: e.target.value })}
+          disabled={isLoading}
         />
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password[0]}</p>}
       </div>
@@ -273,32 +262,26 @@ function RegisterForm() {
           type="password"
           placeholder="Confirm Password"
           className="w-full p-3 rounded-xl bg-[#f5efe6] text-[#3e2c23] placeholder:text-[#8a7666] focus:ring-2 focus:ring-[#6b4f3b] outline-none"
-          onChange={(e) =>
-            setForm({ ...form, confirmPassword: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+          disabled={isLoading}
         />
-
-        {errors.confirmPassword && (
-          <p className="text-red-500 text-xs mt-1">
-            {errors.confirmPassword[0]}
-          </p>
-        )}
+        {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword[0]}</p>}
       </div>
 
-      <p className="text-xs text-[#6b5a4d]">
-        Password must include uppercase and a number.
-      </p>
+      <p className="text-xs text-[#6b5a4d]">Password must include uppercase and a number.</p>
 
       <button
-        type="button"
-        onClick={handleSubmit}
-        className="w-full bg-[#6b4f3b] text-white py-3 rounded-xl hover:-translate-y-0.5 transition"
+        type="submit"
+        disabled={isLoading}
+        className="w-full bg-[#6b4f3b] text-white py-3 rounded-xl hover:-translate-y-0.5 transition disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center"
       >
-        Register
+        {isLoading ? (
+          <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          "Register"
+        )}
       </button>
-      {errors.general && (
-        <p className="text-red-500 text-sm">{errors.general}</p>
-      )}
-    </div>
+      {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
+    </form>
   );
 }

@@ -1,20 +1,59 @@
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import EventDetailsClient from "@/components/main-components/events/EventDetailsClient";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
+import { FaChevronLeft } from "react-icons/fa";
 
+/** 
+ * TYPE DEFINITIONS
+ */
 type EventStatus = "Upcoming" | "Ongoing" | "Ended";
 
-type PageProps = {
+interface PageProps {
   params: Promise<{
     eventId?: string;
     userId?: string;
     id?: string;
   }>;
-};
+}
 
+// Deeply nested interface to match Prisma's 'include' structure
+interface PrismaSubmission {
+  id: string;
+  caption: string | null;
+  createdAt: Date;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+  };
+  post: {
+    id: string;
+    title: string | null;
+    description: string | null;
+    imageUrl: string;
+    createdAt: Date;
+    likes: { userId: string }[];
+    comments: {
+      id: string;
+      content: string;
+      createdAt: Date;
+      user: {
+        id: string;
+        username: string;
+        avatarUrl: string | null;
+      };
+    }[];
+  };
+}
+
+/** 
+ * DATA FETCHING (SERVER SIDE)
+ */
 async function getEventDetails(eventId: string) {
   const currentUser = await getCurrentUserFromToken();
 
@@ -22,40 +61,22 @@ async function getEventDetails(eventId: string) {
     where: { id: eventId },
     include: {
       creator: {
-        select: {
-          id: true,
-          username: true,
-        },
+        select: { id: true, username: true },
       },
       participants: {
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-            },
-          },
+          user: { select: { id: true, username: true } },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       },
       referenceImages: {
-        orderBy: {
-          id: "desc",
-        },
+        orderBy: { id: "desc" },
       },
       submissions: {
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
-            select: {
-              id: true,
-              username: true,
-              avatarUrl: true,
-            },
+            select: { id: true, username: true, avatarUrl: true },
           },
           post: {
             include: {
@@ -63,16 +84,10 @@ async function getEventDetails(eventId: string) {
               comments: {
                 include: {
                   user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      avatarUrl: true,
-                    },
+                    select: { id: true, username: true, avatarUrl: true },
                   },
                 },
-                orderBy: {
-                  createdAt: "desc",
-                },
+                orderBy: { createdAt: "desc" },
               },
             },
           },
@@ -88,25 +103,19 @@ async function getEventDetails(eventId: string) {
   const deadline = event.deadline;
 
   let status: EventStatus = "Upcoming";
-
   if (deadline && now > deadline) {
     status = "Ended";
   } else if (startDate && deadline && now >= startDate && now <= deadline) {
     status = "Ongoing";
   }
 
-const hasJoined = currentUser
-  ? event.participants.some(
-      (participant: { user: { id: string } }) =>
-        participant.user.id === currentUser.id,
-    )
-  : false;
+  const hasJoined = currentUser
+    ? event.participants.some((p) => p.user.id === currentUser.id)
+    : false;
 
-const hasSubmitted = currentUser
-  ? event.submissions.some(
-      (submission: { userId: string }) => submission.userId === currentUser.id,
-    )
-  : false;
+  const hasSubmitted = currentUser
+    ? event.submissions.some((s) => s.userId === currentUser.id)
+    : false;
 
   return {
     id: event.id,
@@ -137,81 +146,36 @@ const hasSubmitted = currentUser
     canSubmit: hasJoined,
     hasSubmitted,
 
-    participants: event.participants.map(
-      (participant: { user: { id: string; username: string } }) => ({
-        id: participant.user.id,
-        username: participant.user.username,
-      }),
-    ),
+    participants: event.participants.map((p) => ({
+      id: p.user.id,
+      username: p.user.username,
+    })),
 
-    referenceImages: event.referenceImages.map(
-      (image: { id: string; imageUrl: string }) => ({
-        id: image.id,
-        imageUrl: image.imageUrl,
-      }),
-    ),
+    referenceImages: event.referenceImages.map((image) => ({
+      id: image.id,
+      imageUrl: image.imageUrl,
+    })),
 
-    submissions: event.submissions.map(
-  (submission: {
-    id: string;
-    caption: string | null;
-    createdAt: Date;
-    userId: string;
-    user: {
-      id: string;
-      username: string;
-      avatarUrl: string | null;
-    };
-    post: {
-      id: string;
-      title: string | null;
-      description: string | null;
-      imageUrl: string;
-      createdAt: Date;
-      likes: { userId: string }[];
-      comments: {
-        id: string;
-        content: string;
-        createdAt: Date;
-        user: {
-          id: string;
-          username: string;
-          avatarUrl: string | null;
-        };
-      }[];
-    };
-  }) => ({
-    id: submission.id,
-    caption: submission.caption,
-    createdAt: submission.createdAt.toISOString(),
-    user: {
-      id: submission.user.id,
-      username: submission.user.username,
-      avatarUrl: submission.user.avatarUrl || "/avatar.jpg",
-    },
-    post: {
-      id: submission.post.id,
-      title: submission.post.title,
-      description: submission.post.description,
-      imageUrl: submission.post.imageUrl,
-      likesCount: submission.post.likes.length,
-      commentsCount: submission.post.comments.length,
-      isLiked: currentUser
-        ? submission.post.likes.some(
-            (like: { userId: string }) => like.userId === currentUser.id,
-          )
-        : false,
-      comments: submission.post.comments.map(
-        (comment: {
-          id: string;
-          content: string;
-          createdAt: Date;
-          user: {
-            id: string;
-            username: string;
-            avatarUrl: string | null;
-          };
-        }) => ({
+    submissions: (event.submissions as unknown as PrismaSubmission[]).map((submission) => ({
+      id: submission.id,
+      caption: submission.caption,
+      createdAt: submission.createdAt.toISOString(),
+      user: {
+        id: submission.user.id,
+        username: submission.user.username,
+        avatarUrl: submission.user.avatarUrl || "/avatar.jpg",
+      },
+      post: {
+        id: submission.post.id,
+        title: submission.post.title,
+        description: submission.post.description,
+        imageUrl: submission.post.imageUrl,
+        likesCount: submission.post.likes.length,
+        commentsCount: submission.post.comments.length,
+        isLiked: currentUser
+          ? submission.post.likes.some((like) => like.userId === currentUser.id)
+          : false,
+        comments: submission.post.comments.map((comment) => ({
           id: comment.id,
           content: comment.content,
           createdAt: comment.createdAt.toISOString(),
@@ -220,19 +184,20 @@ const hasSubmitted = currentUser
             username: comment.user.username,
             avatarUrl: comment.user.avatarUrl || "/avatar.jpg",
           },
-        }),
-      ),
-    },
-  }),
-),
+        })),
+      },
+    })),
   };
 }
 
+/** 
+ * MAIN PAGE COMPONENT
+ */
 export default async function EventDetailsPage({ params }: PageProps) {
   const resolvedParams = await params;
 
-  const eventId =
-    resolvedParams.eventId ?? resolvedParams.userId ?? resolvedParams.id;
+  // Handles varying dynamic parameter names defined in your folder structure
+  const eventId = resolvedParams.eventId ?? resolvedParams.id ?? resolvedParams.userId;
 
   if (!eventId) {
     notFound();
@@ -248,6 +213,17 @@ export default async function EventDetailsPage({ params }: PageProps) {
     <MainLayout>
       <section className="px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-6">
+          
+          {/* Back Navigation */}
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#8a6f5a] transition-colors hover:text-[#3e2c23]"
+          >
+            <FaChevronLeft className="h-3 w-3" />
+            Back to Events
+          </Link>
+
+          {/* Event Header Banner */}
           <div className="overflow-hidden rounded-3xl border border-[#dccfbe] bg-[#f5efe6] shadow-sm">
             <div className="relative h-64 w-full sm:h-80">
               <Image
@@ -282,6 +258,7 @@ export default async function EventDetailsPage({ params }: PageProps) {
             </div>
           </div>
 
+          {/* Submission and Interaction Section */}
           <EventDetailsClient
             eventId={event.id}
             initialSubmissions={event.submissions}

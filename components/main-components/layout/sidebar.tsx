@@ -106,10 +106,8 @@ export default function Sidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* 🔥 Texture Overlay */}
         <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.05] mix-blend-multiply texture-paper" />
 
-        {/* Content wrapper */}
         <div className="relative z-10 flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4">
@@ -190,7 +188,7 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Events */}
+            {/* Events Section */}
             <div>
               <div className="rounded-2xl bg-white p-4 shadow-sm">
                 <div className="flex justify-between mb-3">
@@ -198,7 +196,6 @@ export default function Sidebar() {
                     <h3 className="text-sm font-semibold">
                       Ongoing Events
                     </h3>
-
                     <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">
                       Live
                     </span>
@@ -216,17 +213,18 @@ export default function Sidebar() {
                 ) : (
                   <div className="sidebar-scroll max-h-[240px] space-y-2 overflow-y-auto pr-1">
                     {events.map((event) => (
-                      <div
+                      <Link
                         key={event.id}
-                        className="bg-[#f7f4f0] p-3 rounded-xl"
+                        href={`/events/${event.id}`}
+                        className="block bg-[#f7f4f0] p-3 rounded-xl hover:bg-[#efe8de] transition-colors"
                       >
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-[#3e2c23]">
                           {event.title}
                         </p>
                         <p className="text-xs text-[#7a6757]">
                           {event.dateLabel}
                         </p>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

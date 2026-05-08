@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
@@ -11,11 +13,13 @@ const DEFAULT_AVATAR =
 
 type ArtPostCardProps = {
   post: Post;
-  // ADDED: Pass the logged-in user's ID down to the card
-  currentUserId?: string | null; 
+  // Pass the logged-in user's ID down to the card
+  currentUserId?: string | null;
 };
 
 export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
+  const router = useRouter();
+
   const {
     isFollowed,
     isLiked,
@@ -35,8 +39,68 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
     handleCommentSubmit,
   } = useArtPostCard(post);
 
-  // FIX: Safely check if the current user owns this post
+  // Safely check if the current user owns this post
   const isOwnPost = currentUserId === post.artistId;
+  const postIdSafe = (post as any).id || post.artistId; // Fallback to avoid strict TS errors
+
+  // --------------------------------------------------------
+  // Browser History & Modal State Management
+  // --------------------------------------------------------
+  const openModal = () => {
+    setShowPostModal(true);
+    // Push a fake state to the history stack so the mobile back button can pop it
+    window.history.pushState({ modal: `post-${postIdSafe}` }, "");
+  };
+
+  const closeModal = () => {
+    // If our fake state is still the active state, pop it to cleanly close
+    if (window.history.state?.modal === `post-${postIdSafe}`) {
+      window.history.back();
+    } else {
+      setShowPostModal(false);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // If the back button is pressed while modal is open, this closes it
+      if (showPostModal) {
+        setShowPostModal(false);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [showPostModal, setShowPostModal]);
+
+  const handleNavigateToProfile = (userId: string) => {
+    if (showPostModal) closeModal();
+    // Allow history.back() a slight tick to settle before pushing the new route
+    setTimeout(() => {
+      router.push(`/profile/${userId}`);
+    }, 50);
+  };
+  // --------------------------------------------------------
+
+  const CommentForm = (
+    <div className="sticky bottom-0 z-20 mt-auto w-full border-t border-[#e8dfd3] bg-white p-4">
+      <form onSubmit={handleCommentSubmit} className="flex gap-2">
+        <input
+          type="text"
+          value={commentInput}
+          onChange={(e) => setCommentInput(e.target.value)}
+          placeholder="Write a comment..."
+          className="flex-1 rounded-full border border-[#d9cfc3] bg-white px-4 py-2 text-sm outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
+        />
+        <button
+          type="submit"
+          disabled={isSubmittingComment}
+          className="rounded-full bg-[#5a4636] px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
+        >
+          {isSubmittingComment ? "Posting..." : "Post"}
+        </button>
+      </form>
+    </div>
+  );
 
   return (
     <>
@@ -120,7 +184,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
         <div className="border-y border-[#e8dfd3] bg-[#111]">
           <button
             type="button"
-            onClick={() => setShowPostModal(true)}
+            onClick={openModal}
             className="block w-full cursor-zoom-in"
           >
             <div className="relative flex min-h-50 w-full items-center justify-center overflow-hidden bg-[#111]">
@@ -151,12 +215,15 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
               className="flex items-center gap-2 transition hover:opacity-80"
               type="button"
             >
-              <FaHeart size={18} className={isLiked ? "text-red-500" : "text-[#3e2c23]"} />
+              <FaHeart
+                size={18}
+                className={isLiked ? "text-red-500" : "text-[#3e2c23]"}
+              />
               <span>{likes} Likes</span>
             </button>
 
             <button
-              onClick={() => setShowPostModal(true)}
+              onClick={openModal}
               className="flex items-center gap-2 transition hover:opacity-80"
               type="button"
             >
@@ -171,7 +238,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
       {showPostModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
-          onClick={() => setShowPostModal(false)}
+          onClick={closeModal}
         >
           <div
             className="relative flex max-h-[95vh] w-full max-w-7xl flex-col overflow-y-auto rounded-3xl bg-white shadow-2xl lg:h-[90vh] lg:flex-row lg:overflow-hidden lg:overflow-y-hidden"
@@ -180,7 +247,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
             {/* Close Button */}
             <button
               type="button"
-              onClick={() => setShowPostModal(false)}
+              onClick={closeModal}
               className="fixed left-6 top-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-xl text-white transition hover:bg-black/80 lg:absolute lg:left-4 lg:top-4"
             >
               ×
@@ -200,19 +267,32 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
               </div>
 
               <div className="sticky top-0 z-10 border-b border-[#e8dfd3] bg-white p-4">
-                <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleNavigateToProfile(post.artistId)}
+                  className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
+                >
                   <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
-                    <Image src={post.avatar} alt={post.artist} fill className="object-cover" />
+                    <Image
+                      src={post.avatar}
+                      alt={post.artist}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#3e2c23]">{post.artist}</p>
+                    <p className="truncate text-sm font-semibold text-[#3e2c23] hover:underline">
+                      {post.artist}
+                    </p>
                     <p className="text-xs text-[#6b5a4d]">{post.time}</p>
                   </div>
-                </div>
+                </button>
               </div>
 
               <div className="p-4">
-                <h3 className="text-lg font-bold text-[#3e2c23]">{post.title}</h3>
+                <h3 className="text-lg font-bold text-[#3e2c23]">
+                  {post.title}
+                </h3>
                 {post.description && (
                   <p className="mt-2 text-sm leading-relaxed text-[#5a4636]">
                     {post.description}
@@ -220,8 +300,12 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
                 )}
 
                 <div className="mt-4 flex gap-5 border-y border-[#e8dfd3] py-3 text-sm font-medium">
-                  <button onClick={handleLikeToggle} className="flex items-center gap-2">
-                    <FaHeart className={isLiked ? "text-red-500" : ""} /> {likes} Likes
+                  <button
+                    onClick={handleLikeToggle}
+                    className="flex items-center gap-2"
+                  >
+                    <FaHeart className={isLiked ? "text-red-500" : ""} />{" "}
+                    {likes} Likes
                   </button>
                   <div className="flex items-center gap-2">
                     <FaComment /> {commentCount} Comments
@@ -232,17 +316,38 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
                   {comments.length === 0 ? (
                     <p className="text-sm text-[#6b5a4d]">No comments yet.</p>
                   ) : (
-                    comments.map((comment) => (
-                      <div key={comment.id} className="flex items-start gap-2">
-                        <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                          <Image src={comment.user.avatarUrl || DEFAULT_AVATAR} alt="" fill className="object-cover" />
+                    comments.map((comment) => {
+                      // Safe extraction avoiding TS strict checks on nested schemas
+                      const commentUserId = (comment.user as any).id || (comment as any).userId || comment.user.username;
+                      return (
+                        <div key={comment.id} className="flex items-start gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleNavigateToProfile(commentUserId)}
+                            className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full transition hover:opacity-80"
+                          >
+                            <Image
+                              src={comment.user.avatarUrl || DEFAULT_AVATAR}
+                              alt={comment.user.username}
+                              fill
+                              className="object-cover"
+                            />
+                          </button>
+                          <div className="max-w-[85%] rounded-2xl bg-[#f7f3ee] px-3 py-2 text-sm">
+                            <button
+                              type="button"
+                              onClick={() => handleNavigateToProfile(commentUserId)}
+                              className="font-semibold text-[#3e2c23] hover:underline"
+                            >
+                              {comment.user.username}
+                            </button>
+                            <p className="break-words text-[#5a4636]">
+                              {comment.content}
+                            </p>
+                          </div>
                         </div>
-                        <div className="max-w-[85%] rounded-2xl bg-[#f7f3ee] px-3 py-2 text-sm">
-                          <p className="font-semibold text-[#3e2c23]">{comment.user.username}</p>
-                          <p className="break-words text-[#5a4636]">{comment.content}</p>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
                 <div className="h-28" />
@@ -264,27 +369,44 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
 
               <div className="flex h-full w-[420px] flex-col border-l border-[#e8dfd3]">
                 <div className="sticky top-0 z-10 border-b border-[#e8dfd3] bg-white p-4">
-                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateToProfile(post.artistId)}
+                    className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
+                  >
                     <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full">
-                      <Image src={post.avatar} alt={post.artist} fill className="object-cover" />
+                      <Image
+                        src={post.avatar}
+                        alt={post.artist}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#3e2c23]">{post.artist}</p>
+                      <p className="truncate text-sm font-semibold text-[#3e2c23] hover:underline">
+                        {post.artist}
+                      </p>
                       <p className="text-xs text-[#6b5a4d]">{post.time}</p>
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-4 py-4">
-                  <h3 className="text-lg font-bold text-[#3e2c23]">{post.title}</h3>
+                  <h3 className="text-lg font-bold text-[#3e2c23]">
+                    {post.title}
+                  </h3>
                   {post.description && (
                     <p className="mt-2 text-sm leading-relaxed text-[#5a4636]">
                       {post.description}
                     </p>
                   )}
                   <div className="mt-4 flex gap-5 border-y border-[#e8dfd3] py-3 text-sm font-medium">
-                    <button onClick={handleLikeToggle} className="flex items-center gap-2">
-                      <FaHeart className={isLiked ? "text-red-500" : ""} /> {likes} Likes
+                    <button
+                      onClick={handleLikeToggle}
+                      className="flex items-center gap-2"
+                    >
+                      <FaHeart className={isLiked ? "text-red-500" : ""} />{" "}
+                      {likes} Likes
                     </button>
                     <div className="flex items-center gap-2">
                       <FaComment /> {commentCount} Comments
@@ -294,17 +416,38 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
                     {comments.length === 0 ? (
                       <p className="text-sm text-[#6b5a4d]">No comments yet.</p>
                     ) : (
-                      comments.map((comment) => (
-                        <div key={comment.id} className="flex items-start gap-2">
-                          <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                            <Image src={comment.user.avatarUrl || DEFAULT_AVATAR} alt="" fill className="object-cover" />
+                      comments.map((comment) => {
+                        // Safe extraction avoiding TS strict checks
+                        const commentUserId = (comment.user as any).id || (comment as any).userId || comment.user.username;
+                        return (
+                          <div key={comment.id} className="flex items-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleNavigateToProfile(commentUserId)}
+                              className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full transition hover:opacity-80"
+                            >
+                              <Image
+                                src={comment.user.avatarUrl || DEFAULT_AVATAR}
+                                alt={comment.user.username}
+                                fill
+                                className="object-cover"
+                              />
+                            </button>
+                            <div className="max-w-[85%] rounded-2xl bg-[#f7f3ee] px-3 py-2 text-sm">
+                              <button
+                                type="button"
+                                onClick={() => handleNavigateToProfile(commentUserId)}
+                                className="font-semibold text-[#3e2c23] hover:underline"
+                              >
+                                {comment.user.username}
+                              </button>
+                              <p className="break-words text-[#5a4636]">
+                                {comment.content}
+                              </p>
+                            </div>
                           </div>
-                          <div className="max-w-[85%] rounded-2xl bg-[#f7f3ee] px-3 py-2 text-sm">
-                            <p className="font-semibold text-[#3e2c23]">{comment.user.username}</p>
-                            <p className="break-words text-[#5a4636]">{comment.content}</p>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -313,22 +456,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
 
             {/* 3. Common Sticky Comment Input */}
             <div className="sticky bottom-0 z-20 border-t border-[#e8dfd3] bg-white p-4">
-              <form onSubmit={handleCommentSubmit} className="flex gap-2">
-                <input
-                  type="text"
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  placeholder="Write a comment..."
-                  className="flex-1 rounded-full border border-[#d9cfc3] bg-white px-4 py-2 text-sm outline-none placeholder:text-[#9a8878] focus:border-[#5a4636]"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmittingComment}
-                  className="rounded-full bg-[#5a4636] px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
-                >
-                  {isSubmittingComment ? "Posting..." : "Post"}
-                </button>
-              </form>
+              {CommentForm}
               <div className="h-2 md:hidden" />
             </div>
           </div>
