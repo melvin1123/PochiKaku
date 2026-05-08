@@ -2,6 +2,7 @@
 
 import { Dialog } from "@headlessui/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaHeart, FaComment } from "react-icons/fa";
 import type { CommentItem } from "@/app/types/comment";
@@ -83,7 +84,6 @@ export default function ArtModal({
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState<string>("");
 
-  // Sync state when a new artwork is loaded into the modal
   useEffect(() => {
     if (!art) return;
 
@@ -93,15 +93,12 @@ export default function ArtModal({
     setNewComment("");
   }, [art]);
 
-  // Handle Mobile Back Button
   useEffect(() => {
     if (!art) return;
 
-    // Push a state to the history stack when the modal opens
     window.history.pushState({ isArtModalOpen: true }, "");
 
     const handlePopState = () => {
-      // When the user presses the back button, trigger the close function
       onClose();
     };
 
@@ -109,10 +106,6 @@ export default function ArtModal({
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      
-      // If the modal was closed via UI (e.g., clicking "X" or outside the modal),
-      // the history state is still there. We must go back once to clear it
-      // so the user's normal browser history isn't broken.
       if (window.history.state?.isArtModalOpen) {
         window.history.back();
       }
@@ -213,7 +206,13 @@ export default function ArtModal({
         <div className="flex w-full flex-col border-l border-[#e8dfd3] text-[#3e2c23] md:h-full md:w-[30%]">
           <div className="border-b border-[#e8dfd3] p-6">
             <h2 className="text-2xl font-bold">{art.title}</h2>
-            <p className="text-md text-[#5a4636]">by {art.artist}</p>
+            {/* Navigates to main artist via ID */}
+            <Link 
+              href={`/profile/${art.artistId}`}
+              className="w-fit text-md text-[#5a4636] transition-colors hover:text-[#3e2c23] hover:underline"
+            >
+              by {art.artist}
+            </Link>
             <p className="mt-4 text-sm leading-relaxed text-[#5a4636]">{art.description}</p>
           </div>
 
@@ -239,7 +238,11 @@ export default function ArtModal({
             ) : (
               comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
-                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border border-[#d6c3a3]">
+                  {/* Avatar Link via ID */}
+                  <Link 
+                    href={`/profile/${comment.user.id}`}
+                    className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border border-[#d6c3a3] transition-opacity hover:opacity-80"
+                  >
                     <Image
                       src={comment.user.avatarUrl}
                       alt={comment.user.username}
@@ -247,11 +250,15 @@ export default function ArtModal({
                       className="object-cover"
                       sizes="32px"
                     />
-                  </div>
+                  </Link>
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#3e2c23]">
+                    {/* Username Link via ID with hover underline */}
+                    <Link 
+                      href={`/profile/${comment.user.id}`}
+                      className="w-fit text-xs font-bold uppercase tracking-wider text-[#3e2c23] transition-colors hover:text-black hover:underline"
+                    >
                       {comment.user.username}
-                    </span>
+                    </Link>
                     <p className="text-sm text-[#5a4636]">{comment.content}</p>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<SidebarEvent[]>([]);
 
@@ -47,7 +47,7 @@ export default function Sidebar() {
     fetchSidebarData();
   }, []);
 
-  const fetchSidebarData = async () => {
+  const fetchSidebarData = async (): Promise<void> => {
     try {
       const res = await fetch("/api/sidebar", {
         credentials: "include",
@@ -65,7 +65,7 @@ export default function Sidebar() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -121,23 +121,28 @@ export default function Sidebar() {
             </button>
           </div>
 
-          {/* User row */}
+          {/* User row - Now clickable via Link */}
           <div className="flex items-center gap-3 px-5 pb-4 pt-1">
-            <div className="relative h-10 w-10">
-              <Image
-                src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
-                alt="avatar"
-                fill
-                className="rounded-full object-cover"
-              />
-            </div>
+            <Link
+              href={user ? `/profile/${user.id}` : "/profile"}
+              className="group flex items-center gap-3 transition-opacity hover:opacity-80"
+            >
+              <div className="relative h-10 w-10 flex-shrink-0">
+                <Image
+                  src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
+                  alt="avatar"
+                  fill
+                  className="rounded-full object-cover"
+                />
+              </div>
 
-            <div>
-              <p className="font-semibold text-[#3e2c23]">
-                {user?.username || "Artist"}
-              </p>
-              <p className="text-xs text-[#7a6757]">Welcome back</p>
-            </div>
+              <div>
+                <p className="font-semibold text-[#3e2c23] group-hover:underline">
+                  {user?.username || "Artist"}
+                </p>
+                <p className="text-xs text-[#7a6757]">Welcome back</p>
+              </div>
+            </Link>
 
             <button className="relative ml-auto rounded-lg p-2 hover:bg-[#ece4d9]">
               <FaBell />
