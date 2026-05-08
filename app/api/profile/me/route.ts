@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
+import { v2 as cloudinary } from "cloudinary";
+
+/**
+ * CLOUDINARY CONFIGURATION
+ * Ensure these variables are in your .env file
+ */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 type CurrentUser = {
   id: string;
@@ -34,6 +45,9 @@ function formatTimeAgo(date: Date): string {
   return date.toLocaleDateString();
 }
 
+/**
+ * GET: Fetch current user profile and artworks
+ */
 export async function GET() {
   try {
     const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
@@ -99,6 +113,9 @@ export async function GET() {
   }
 }
 
+/**
+ * PATCH: Update profile details and avatar image
+ */
 export async function PATCH(req: Request) {
   try {
     const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
@@ -106,37 +123,56 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 1. Switch from req.json() to req.formData()
     const formData = await req.formData();
     
     const username = formData.get("username")?.toString().trim();
     const bio = formData.get("bio")?.toString().trim();
     const avatarFile = formData.get("avatar") as File | null;
 
-    // 2. Prepare update data
+    // Object to store only the fields that are actually being changed
     const updateData: any = {};
 
-    if (username !== undefined) {
-      if (username !== "") {
-        updateData.username = username;
-      } else {
-        return NextResponse.json({ error: "Username cannot be empty." }, { status: 400 });
-      }
+    if (username) {
+      updateData.username = username;
+    } else if (username === "") {
+      return NextResponse.json({ error: "Username cannot be empty." }, { status: 400 });
     }
 
     if (bio !== undefined) {
       updateData.bio = bio;
     }
 
-    // 3. Handle Avatar Upload (Optional Logic)
-    if (avatarFile) {
-      // Here you would typically upload to Cloudinary/S3 
-      // and get a URL back. For now, we'll assume you just update text
-      // updateData.avatarUrl = uploadedImageUrl;
-      console.log("Avatar file received:", avatarFile.name);
+    // Handle Image Upload to Cloudinary
+    if (avatarFile && avatarFile.size > 0) {
+      try {
+        // Convert the File object to a Buffer for the Cloudinary stream
+        const arrayBuffer = await avatarFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Promise-based wrapper for Cloudinary's upload_stream
+        const uploadResponse: any = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "user_avatars",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(buffer);
+        });
+
+        // Set the new URL to be saved in Prisma
+        updateData.avatarUrl = uploadResponse.secure_url;
+      } catch (uploadErr) {
+        console.error("Cloudinary Upload Error:", uploadErr);
+        return NextResponse.json({ error: "Failed to upload image." }, { status: 500 });
+      }
     }
 
-    // 4. Execute Update
+    // Update the user record in the database
     const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
       data: updateData,
@@ -162,9 +198,12 @@ export async function PATCH(req: Request) {
     });
   } catch (error: any) {
     console.error("PATCH /api/profile/me error:", error);
+    
+    // Prisma unique constraint violation (Username taken)
     if (error.code === 'P2002') {
       return NextResponse.json({ error: "Username is already taken." }, { status: 400 });
     }
+    
     return NextResponse.json({ error: "Failed to update profile." }, { status: 500 });
   }
 }
