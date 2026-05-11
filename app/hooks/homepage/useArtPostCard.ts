@@ -25,7 +25,8 @@ type UseArtPostCardReturn = {
   setShowMenu: React.Dispatch<React.SetStateAction<boolean>>;
   handleFollowToggle: () => Promise<void>;
   handleLikeToggle: () => Promise<void>;
-  handleCommentSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  // Updated signature to accept parentId
+  handleCommentSubmit: (event: FormEvent<HTMLFormElement>, parentId?: string | null) => Promise<void>;
 };
 
 async function parseJsonResponse(res: Response): Promise<unknown> {
@@ -131,7 +132,8 @@ export function useArtPostCard(post: Post): UseArtPostCardReturn {
   }, [post.id]);
 
   const handleCommentSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    // Added parentId argument here
+    async (event: FormEvent<HTMLFormElement>, parentId?: string | null): Promise<void> => {
       event.preventDefault();
 
       const content = commentInput.trim();
@@ -147,7 +149,11 @@ export function useArtPostCard(post: Post): UseArtPostCardReturn {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ content }),
+          // Send parentId in the payload alongside content
+          body: JSON.stringify({ 
+            content, 
+            parentId: parentId || null 
+          }),
         });
 
         const data = await parseJsonResponse(res);

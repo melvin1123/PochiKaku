@@ -18,31 +18,44 @@ export default function EditProfileModal({
   onClose,
   onUpdated,
 }: EditProfileModalProps) {
+  // 1. Initialize state
   const [username, setUsername] = useState<string>(profile.username);
-  const [bio, setBio] = useState<string>(profile.bio);
+  const [bio, setBio] = useState<string>(profile.bio ?? "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(profile.avatarUrl);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  // 2. FIX: The State Sync Trap
+  // This resets the internal state whenever the modal opens or the profile data changes.
   useEffect(() => {
-  if (!avatarFile) {
-    setPreviewUrl(profile.avatarUrl);
-    return;
-  }
+    if (isOpen) {
+      setUsername(profile.username);
+      setBio(profile.bio ?? "");
+      setPreviewUrl(profile.avatarUrl);
+      setAvatarFile(null);
+      setError("");
+    }
+  }, [isOpen, profile]);
 
-  const objectUrl = URL.createObjectURL(avatarFile);
-  setPreviewUrl(objectUrl);
+  // 3. Handle Avatar Preview
+  useEffect(() => {
+    if (!avatarFile) {
+      return;
+    }
 
-  return () => {
-    URL.revokeObjectURL(objectUrl);
+    const objectUrl = URL.createObjectURL(avatarFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [avatarFile]);
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0] ?? null;
+    setAvatarFile(file);
   };
-}, [avatarFile, profile.avatarUrl]);
-
-const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>): void => {
-  const file = event.target.files?.[0] ?? null;
-  setAvatarFile(file);
-};
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,50 +112,58 @@ const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>): void => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center gap-4">
-          <label className="group relative h-20 w-20 cursor-pointer overflow-hidden rounded-full border border-[#d7cab9] transition-colors hover:border-[#5a4636]">
-            <Image
-              src={previewUrl}
-              alt="Profile preview"
-              fill
-              className="object-cover transition-opacity group-hover:opacity-80"
-              sizes="80px"
-            />
-            
-            {/* Screen reader text or a small icon could go here */}
-            <input
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
-          </label>
+            <label className="group relative h-20 w-20 cursor-pointer overflow-hidden rounded-full border border-[#d7cab9] transition-colors hover:border-[#5a4636]">
+              <Image
+                src={previewUrl || "/default-avatar.png"} 
+                alt="Profile preview"
+                fill
+                className="object-cover transition-opacity group-hover:opacity-80"
+                sizes="80px"
+              />
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </label>
 
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium text-[#5a4636]">Update photo</p>
-            <p className="text-xs text-gray-500">Click the profile picture to upload</p>
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium text-[#5a4636]">Update photo</p>
+              <p className="text-xs text-gray-500">Click the circle to upload</p>
+            </div>
           </div>
-        </div>
 
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="Username"
-            className="w-full rounded-lg border border-[#d7cab9] px-4 py-2 outline-none focus:border-[#5a4636]"
-          />
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-[#5a4636] uppercase tracking-wider">Username</label>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Username"
+              className="w-full rounded-lg border border-[#d7cab9] px-4 py-2 outline-none focus:border-[#5a4636]"
+            />
+          </div>
 
-          <textarea
-            value={bio}
-            onChange={(event) => setBio(event.target.value)}
-            placeholder="Bio"
-            className="h-24 w-full resize-none rounded-lg border border-[#d7cab9] px-4 py-2 outline-none focus:border-[#5a4636]"
-          />
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-[#5a4636] uppercase tracking-wider">Bio</label>
+            <textarea
+              value={bio}
+              onChange={(event) => setBio(event.target.value)}
+              placeholder="Tell us about yourself..."
+              className="h-24 w-full resize-none rounded-lg border border-[#d7cab9] px-4 py-2 outline-none focus:border-[#5a4636]"
+            />
+          </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="rounded-md bg-red-50 p-2">
+              <p className="text-center text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-[#3e2c23] py-2 font-semibold text-[#f5efe6] transition hover:bg-[#5a4636] disabled:opacity-60"
+            className="w-full rounded-xl bg-[#3e2c23] py-2 font-semibold text-[#f5efe6] transition hover:bg-[#5a4636] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Saving..." : "Save Changes"}
           </button>

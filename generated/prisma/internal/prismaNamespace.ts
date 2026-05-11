@@ -1300,7 +1300,8 @@ export const CommentScalarFieldEnum = {
   content: 'content',
   createdAt: 'createdAt',
   userId: 'userId',
-  postId: 'postId'
+  postId: 'postId',
+  parentId: 'parentId'
 } as const
 
 export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]

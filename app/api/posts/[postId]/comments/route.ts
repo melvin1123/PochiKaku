@@ -15,12 +15,14 @@ type CurrentUser = {
 
 type RequestBody = {
   content?: string;
+  parentId?: string | null;
 };
 
 type CommentWithUser = {
   id: string;
   content: string;
   createdAt: Date;
+  parentId?: string | null;
   user: {
     id: string;
     username: string;
@@ -36,6 +38,7 @@ function formatComment(comment: CommentWithUser): CommentItem {
     id: comment.id,
     content: comment.content,
     createdAt: comment.createdAt.toISOString(),
+    parentId: comment.parentId ?? null,
     user: {
       id: comment.user.id,
       username: comment.user.username,
@@ -53,10 +56,7 @@ export async function GET(_: Request, { params }: Params) {
     const { postId } = await params;
 
     if (!postId) {
-      return NextResponse.json(
-        { error: "Post id is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Post id is required" }, { status: 400 });
     }
 
     const comments = (await prisma.comment.findMany({
@@ -71,7 +71,7 @@ export async function GET(_: Request, { params }: Params) {
           },
         },
       },
-    })) as CommentWithUser[];
+    })) as unknown as CommentWithUser[];
 
     const formatted: CommentItem[] = comments.map(
       (comment: CommentWithUser) => formatComment(comment),
@@ -80,48 +80,32 @@ export async function GET(_: Request, { params }: Params) {
     return NextResponse.json({ comments: formatted });
   } catch (error: unknown) {
     console.error("Fetch comments error:", error);
-
-    return NextResponse.json(
-      { error: "Failed to fetch comments" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request, { params }: Params) {
   try {
     const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
-
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { postId } = await params;
-
     if (!postId) {
-      return NextResponse.json(
-        { error: "Post id is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Post id is required" }, { status: 400 });
     }
 
     const rawBody: unknown = await req.json();
-
     if (!isRequestBody(rawBody)) {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const content =
-      typeof rawBody.content === "string" ? rawBody.content.trim() : "";
+    const content = typeof rawBody.content === "string" ? rawBody.content.trim() : "";
+    const parentId = typeof rawBody.parentId === "string" ? rawBody.parentId : null;
 
     if (!content) {
-      return NextResponse.json(
-        { error: "Comment content is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
     }
 
     const post = await prisma.post.findUnique({
@@ -133,11 +117,13 @@ export async function POST(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
+    // Fixed: Cast through 'unknown' to bypass overlap check and used correct parentId variable
     const comment = (await prisma.comment.create({
       data: {
         content,
         userId: currentUser.id,
-        postId,
+        postId: postId,
+        parentId: parentId, 
       },
       include: {
         user: {
@@ -148,7 +134,7 @@ export async function POST(req: Request, { params }: Params) {
           },
         },
       },
-    })) as CommentWithUser;
+    })) as unknown as CommentWithUser;
 
     const commentCount = await prisma.comment.count({
       where: { postId },
@@ -161,10 +147,6 @@ export async function POST(req: Request, { params }: Params) {
     });
   } catch (error: unknown) {
     console.error("Create comment error:", error);
-
-    return NextResponse.json(
-      { error: "Failed to create comment" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
   }
 }

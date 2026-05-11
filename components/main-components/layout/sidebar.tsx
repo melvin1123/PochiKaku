@@ -78,6 +78,8 @@ export default function Sidebar() {
     }
   };
 
+  const profileHref = user ? `/profile/${user.id}` : "/profile";
+
   return (
     <>
       {/* Mobile top bar */}
@@ -121,28 +123,33 @@ export default function Sidebar() {
             </button>
           </div>
 
-          {/* User row - Now clickable via Link */}
+          {/* User Section */}
           <div className="flex items-center gap-3 px-5 pb-4 pt-1">
+            {/* Clickable Avatar with separate hover */}
             <Link
-              href={user ? `/profile/${user.id}` : "/profile"}
-              className="group flex items-center gap-3 transition-opacity hover:opacity-80"
+              href={profileHref}
+              className="relative h-10 w-10 flex-shrink-0 transition-opacity hover:opacity-75"
             >
-              <div className="relative h-10 w-10 flex-shrink-0">
-                <Image
-                  src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
-                  alt="avatar"
-                  fill
-                  className="rounded-full object-cover"
-                />
-              </div>
-
-              <div>
-                <p className="font-semibold text-[#3e2c23] group-hover:underline">
-                  {user?.username || "Artist"}
-                </p>
-                <p className="text-xs text-[#7a6757]">Welcome back</p>
-              </div>
+              <Image
+                src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
+                alt="avatar"
+                fill
+                className="rounded-full object-cover"
+              />
             </Link>
+
+            <div className="flex flex-col">
+              {/* Clickable Name with separate hover underline */}
+              <Link
+                href={profileHref}
+                className="w-fit font-semibold text-[#3e2c23]"
+              >
+                {user?.username || "Artist"}
+              </Link>
+              
+              {/* Static Welcome text (No hover) */}
+              <p className="text-xs text-[#7a6757]">Welcome back</p>
+            </div>
 
             <button className="relative ml-auto rounded-lg p-2 hover:bg-[#ece4d9]">
               <FaBell />
@@ -198,9 +205,7 @@ export default function Sidebar() {
               <div className="rounded-2xl bg-white p-4 shadow-sm">
                 <div className="flex justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold">
-                      Ongoing Events
-                    </h3>
+                    <h3 className="text-sm font-semibold">Ongoing Events</h3>
                     <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">
                       Live
                     </span>
@@ -241,7 +246,7 @@ export default function Sidebar() {
           <div className="px-4 pb-4">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 bg-[#efe8de] py-3 rounded-xl hover:bg-[#e8dfd3]"
+              className="w-full flex items-center justify-center gap-2 bg-[#efe8de] py-3 rounded-xl hover:bg-[#e8dfd3] transition-colors"
             >
               <FaSignOutAlt />
               Logout
