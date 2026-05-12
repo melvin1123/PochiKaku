@@ -70,8 +70,11 @@ export async function GET(_: Request, { params }: Params) {
             avatarUrl: true,
           },
         },
+        // IMPORTANT: Ensure parentId is part of the returned object
+        // If your prisma client is generated correctly, 
+        // it should be included by default, but let's be explicit if needed.
       },
-    })) as unknown as CommentWithUser[];
+    })) as unknown as CommentWithUser[]; // Use the unknown bridge here too
 
     const formatted: CommentItem[] = comments.map(
       (comment: CommentWithUser) => formatComment(comment),
