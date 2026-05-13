@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { FaHeart, FaComment, FaEllipsisH } from "react-icons/fa";
+import { FaHeart, FaComment, FaEllipsisH, FaReply } from "react-icons/fa";
 import { useArtPostCard } from "@/app/hooks/homepage/useArtPostCard";
 import type { Post } from "@/app/types/post";
 
@@ -84,19 +84,20 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
   const renderCommentNode = (comment: NestedComment, depth: number = 0) => {
     const commentUserId = comment.user?.id || comment.user?.username || "";
     const hasReplies = comment.replies && comment.replies.length > 0;
-    const isExpanded = expandedReplies[comment.id];
+    const commentIdStr = String(comment.id);
+    const isExpanded = expandedReplies[commentIdStr];
     
     // FLAT UI LOGIC: Only the first level of replies gets smaller avatars
     const isReply = depth > 0;
 
     return (
-      <div key={comment.id} className={`flex flex-col gap-1 ${depth === 0 ? "mt-5 first:mt-0" : "mt-4"}`}>
+      <div key={commentIdStr} className={`flex flex-col gap-1 ${depth === 0 ? "mt-5 first:mt-0" : "mt-4"}`}>
         {/* Comment Body */}
         <div className="flex items-start gap-2">
           <button
             type="button"
             onClick={() => handleNavigateToProfile(commentUserId)}
-            className={`relative flex-shrink-0 overflow-hidden rounded-full transition hover:opacity-80 ${
+            className={`relative flex-shrink-0 overflow-hidden rounded-full border border-[#e8dfd3] bg-[#f7f3ee] transition hover:opacity-80 ${
               isReply ? "h-7 w-7" : "h-9 w-9" 
             }`}
           >
@@ -105,6 +106,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
               alt={comment.user?.username || "User"}
               fill
               className="object-cover"
+              sizes={isReply ? "28px" : "36px"}
             />
           </button>
           
@@ -129,45 +131,42 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
           </div>
         </div>
 
-        {/* Action Bar */}
+        {/* Action Bar (Modal Style Buttons) */}
         <div className={`${isReply ? "ml-9" : "ml-11"} flex items-center gap-4 text-[11px] font-bold text-[#8a7a6d]`}>
           <button
             type="button"
-            onClick={() => setReplyingTo({ id: comment.id, username: comment.user?.username || "User" })}
-            className="transition hover:text-[#3e2c23]"
+            onClick={() => setReplyingTo({ id: commentIdStr, username: comment.user?.username || "User" })}
+            className="flex items-center gap-1 transition hover:text-[#3e2c23]"
           >
-            Reply
+            <FaReply size={10} /> Reply
           </button>
-        </div>
 
-        {/* Thread Toggle Button */}
-        {hasReplies && (
-          <div className={`${isReply ? "ml-9" : "ml-11"} mt-1`}>
+          {/* View/Hide Toggle - Matches ArtModal style */}
+          {hasReplies && (
             <button
-              onClick={() => toggleReplies(comment.id)}
-              className="group flex items-center gap-2 text-[11px] font-bold text-[#5a4636]"
+              onClick={() => toggleReplies(commentIdStr)}
+              className="text-[#5a4636] transition hover:underline"
             >
-              <span className="h-[1px] w-5 bg-[#d9cfc3] transition-colors group-hover:bg-[#5a4636]"></span>
               {isExpanded ? "Hide replies" : `View ${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* RECURSION CONTAINER (The Flat Switch) */}
         {isExpanded && hasReplies && (
           <div 
             className={`
-              mt-2 flex flex-col gap-4 
+              mt-2 flex flex-col gap-1 
               ${depth === 0 
-                ? "ml-9 sm:ml-11 border-l border-[#e8dfd3] pl-3" // Only the Root gets the indent & line
+                ? "ml-6 sm:ml-11 border-l-2 border-[#e8dfd3] pl-3" // Root gets the indent & line
                 : "ml-0 border-none pl-0" // Depth 1+ replies get NO margins, NO borders, NO padding
               }
             `}
           >
             {/* 
-               NOTICE: Because we strip margin, border, and padding when depth > 0,
-               we prevent the "staircase" effect. All deep replies will align 
-               perfectly flush under the very first reply level. 
+                NOTICE: Because we strip margin, border, and padding when depth > 0,
+                we prevent the "staircase" effect. All deep replies will align 
+                perfectly flush under the very first reply level. 
             */}
             {comment.replies.map((reply) => renderCommentNode(reply, depth + 1))}
           </div>

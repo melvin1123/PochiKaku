@@ -1,316 +1,292 @@
 "use client";
 
-import { Dialog } from "@headlessui/react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Dialog, Disclosure } from "@headlessui/react";
 import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { FaHeart, FaComment } from "react-icons/fa";
-import type { CommentItem } from "@/app/types/comment";
-import type { GalleryItem } from "@/app/types/gallery";
+import { FaHeart, FaComment, FaTimes, FaChevronDown, FaReply } from "react-icons/fa";
 
-type ArtModalProps = {
+import { GalleryItem } from "@/app/types/gallery"; 
+import { CommentItem } from "@/app/types/comment";
+import { NestedComment, nestComments } from "@/app/utils/comments";
+
+interface ArtModalProps {
   art: GalleryItem | null;
   onClose: () => void;
   onChangeArt: (art: GalleryItem) => void;
   moreArtworks?: GalleryItem[];
-};
-
-type LikeResponse = {
-  isLiked?: boolean;
-  liked?: boolean;
-  likes?: number;
-};
-
-type CommentResponse = {
-  comment?: CommentItem;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
-function parseLikeResponse(value: unknown): LikeResponse {
-  if (!isRecord(value)) return {};
-
-  return {
-    isLiked: typeof value.isLiked === "boolean" ? value.isLiked : undefined,
-    liked: typeof value.liked === "boolean" ? value.liked : undefined,
-    likes: typeof value.likes === "number" ? value.likes : undefined,
-  };
-}
-
-function isCommentItem(value: unknown): value is CommentItem {
-  if (!isRecord(value)) return false;
-
-  const user = value.user;
+/**
+ * RECURSIVE COMMENT COMPONENT
+ */
+const CommentNode: React.FC<{
+  comment: NestedComment;
+  depth?: number;
+  onReply: (c: { id: string; username: string }) => void;
+}> = ({ comment, depth = 0, onReply }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasReplies = comment.replies && comment.replies.length > 0;
+  const isReply = depth > 0;
 
   return (
-    typeof value.id === "string" &&
-    typeof value.content === "string" &&
-    typeof value.createdAt === "string" &&
-    isRecord(user) &&
-    typeof user.id === "string" &&
-    typeof user.username === "string" &&
-    typeof user.avatarUrl === "string"
+    <div className={`flex flex-col gap-1 ${depth === 0 ? "mt-5 first:mt-0" : "mt-4"}`}>
+      <div className="flex items-start gap-2">
+        {/* Avatar */}
+        <div className={`relative flex-shrink-0 overflow-hidden rounded-full border border-[#e8dfd3] bg-[#f7f3ee] ${isReply ? "h-7 w-7" : "h-9 w-9"}`}>
+          <Image 
+            src={comment.user?.avatarUrl || "/default-avatar.jpg"} 
+            alt={comment.user?.username || "User"} 
+            fill 
+            className="object-cover" 
+            sizes={isReply ? "28px" : "36px"}
+          />
+        </div>
+
+        {/* Content Bubble */}
+        <div className="max-w-[88%] rounded-2xl bg-[#f7f3ee] px-3 py-2 text-sm shadow-sm">
+          <div className="flex flex-wrap items-center gap-x-2">
+            <span className="font-bold text-[#3e2c23]">{comment.user?.username}</span>
+            {isReply && comment.parentUsername && (
+              <span className="text-[11px] font-medium text-[#9a8878]">
+                replying to <span className="text-[#7a6a5d]">@{comment.parentUsername}</span>
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 break-words leading-relaxed text-[#5a4636]">{comment.content}</p>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className={`${isReply ? "ml-9" : "ml-11"} flex items-center gap-4 text-[11px] font-bold text-[#8a7a6d]`}>
+        <button 
+          onClick={() => onReply({ id: String(comment.id), username: comment.user.username })}
+          className="flex items-center gap-1 transition hover:text-[#3e2c23]"
+        >
+          <FaReply size={10} /> Reply
+        </button>
+
+        {/* View/Hide Toggle - ONLY shows if there are replies */}
+        {hasReplies && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-[#5a4636] transition hover:underline"
+          >
+            {isExpanded ? "Hide replies" : `View ${comment.replies.length} replies`}
+          </button>
+        )}
+      </div>
+
+      {/* Nested Replies Section */}
+      {isExpanded && hasReplies && (
+        <div className="mt-2 flex flex-col gap-1 ml-6 sm:ml-11 border-l-2 border-[#e8dfd3] pl-3">
+          {comment.replies.map((reply) => (
+            <CommentNode 
+              key={String(reply.id)} 
+              comment={reply} 
+              depth={depth + 1} 
+              onReply={onReply} 
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
-}
+};
 
-function parseCommentResponse(value: unknown): CommentResponse {
-  if (!isRecord(value)) return {};
-
-  return {
-    comment: isCommentItem(value.comment) ? value.comment : undefined,
-  };
-}
-
-async function parseJsonResponse(res: Response): Promise<unknown> {
-  const text = await res.text();
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new Error(`API did not return JSON. Status: ${res.status}`);
-  }
-}
-
-export default function ArtModal({
-  art,
-  onClose,
-  onChangeArt,
-  moreArtworks = [],
-}: ArtModalProps) {
+export default function ArtModal({ art, onClose, onChangeArt, moreArtworks = [] }: ArtModalProps) {
   const [likes, setLikes] = useState<number>(0);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [comments, setComments] = useState<CommentItem[]>([]);
-  const [newComment, setNewComment] = useState<string>("");
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
 
+  // Sync state and FETCH FULL COMMENTS
   useEffect(() => {
     if (!art) return;
-
     setLikes(art.likes);
-    setComments(art.commentsPreview ?? []);
     setIsLiked(art.isLiked ?? false);
-    setNewComment("");
+    setReplyingTo(null);
+
+    // Set initial preview while loading the full thread
+    const preview = (art.commentsPreview ?? []).map(c => ({
+      ...c,
+      id: String(c.id),
+      parentId: c.parentId ? String(c.parentId) : null
+    }));
+    setComments(preview);
+
+    const fetchFullThread = async () => {
+      setIsLoadingComments(true);
+      try {
+        const res = await fetch(`/api/posts/${art.id}/comments`);
+        const data = await res.json();
+        if (data.comments) {
+          // Force string IDs to prevent nesting failures
+          const sanitized = data.comments.map((c: any) => ({
+            ...c,
+            id: String(c.id),
+            parentId: c.parentId ? String(c.parentId) : null
+          }));
+          setComments(sanitized);
+        }
+      } catch (err) {
+        console.error("Full thread fetch error:", err);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+
+    fetchFullThread();
   }, [art]);
 
-  useEffect(() => {
-    if (!art) return;
+  // The Memoized Tree - Extra safety layer here
+  const nestedCommentsTree = useMemo(() => {
+    return nestComments(comments);
+  }, [comments]);
 
-    window.history.pushState({ isArtModalOpen: true }, "");
+  const handleCommentSubmit = async () => {
+    if (!art || !newComment.trim()) return;
 
-    const handlePopState = () => {
-      onClose();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      if (window.history.state?.isArtModalOpen) {
-        window.history.back();
-      }
-    };
-  }, [art, onClose]);
-
-  const handleLike = async (): Promise<void> => {
-    if (!art) return;
-
-    try {
-      const res = await fetch(`/api/posts/${art.id}/like`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const rawData = await parseJsonResponse(res);
-
-      if (!res.ok) {
-        throw new Error("Like failed.");
-      }
-
-      const data = parseLikeResponse(rawData);
-
-      setIsLiked(data.isLiked ?? data.liked ?? false);
-      setLikes(data.likes ?? likes);
-    } catch (err: unknown) {
-      console.error("Like failed:", err);
-    }
-  };
-
-  const handleComment = async (): Promise<void> => {
-    const content = newComment.trim();
-
-    if (!art || !content) return;
+    const targetParentId = replyingTo?.id || null;
 
     try {
       const res = await fetch(`/api/posts/${art.id}/comments`, {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newComment, parentId: targetParentId }),
       });
 
-      const rawData = await parseJsonResponse(res);
+      if (!res.ok) throw new Error("Failed to post");
 
-      if (!res.ok) {
-        throw new Error("Comment failed.");
-      }
+      const data = await res.json();
+      
+      const savedComment: CommentItem = {
+        ...data.comment,
+        id: String(data.comment.id),
+        parentId: targetParentId ? String(targetParentId) : null,
+      };
 
-      const data = parseCommentResponse(rawData);
-
-      if (!data.comment) {
-        throw new Error("Invalid comment response.");
-      }
-
-      setComments((prev) => [...prev, data.comment as CommentItem]);
+      setComments((prev) => [...prev, savedComment]);
       setNewComment("");
-    } catch (err: unknown) {
-      console.error("Comment failed:", err);
+      setReplyingTo(null);
+    } catch (err) {
+      console.error("Comment submission error:", err);
     }
   };
 
   if (!art) return null;
 
   return (
-    <Dialog
-      open={Boolean(art)}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm"
-    >
-      <Dialog.Panel className="relative flex h-full w-full flex-col overflow-y-auto bg-[#f5efe6] md:flex-row md:overflow-hidden">
+    <Dialog open={!!art} onClose={onClose} className="fixed inset-0 z-50 flex bg-black/80 backdrop-blur-md">
+      <Dialog.Panel className="relative flex h-full w-full flex-col bg-white md:flex-row md:overflow-hidden">
         
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute left-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-          aria-label="Close modal"
-        >
-          ✕
+        {/* Close Button */}
+        <button onClick={onClose} className="absolute left-4 top-4 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition">
+          <FaTimes size={20} />
         </button>
 
-        {/* Image Section */}
-        <div className="flex w-full flex-shrink-0 items-center justify-center bg-black md:h-full md:w-[60%]">
-          <Image
-            src={art.image}
-            alt={art.title}
-            width={1600}
-            height={1600}
-            className="h-full w-full object-contain"
-            sizes="(max-width: 768px) 100vw, 60vw"
-            priority
-          />
+        {/* LEFT: Art Image */}
+        <div className="relative flex h-[45dvh] w-full items-center justify-center bg-black md:h-full md:flex-1">
+          <Image src={art.image} alt={art.title} fill className="object-contain" priority sizes="(max-width: 768px) 100vw, 60vw" />
         </div>
 
-        {/* Info & Comments Section */}
-        <div className="flex w-full flex-col border-l border-[#e8dfd3] text-[#3e2c23] md:h-full md:w-[30%]">
-          <div className="border-b border-[#e8dfd3] p-6">
-            <h2 className="text-2xl font-bold">{art.title}</h2>
-            {/* Navigates to main artist via ID */}
-            <Link 
-              href={`/profile/${art.artistId}`}
-              className="w-fit text-md text-[#5a4636] transition-colors hover:text-[#3e2c23] hover:underline"
-            >
-              by {art.artist}
-            </Link>
-            <p className="mt-4 text-sm leading-relaxed text-[#5a4636]">{art.description}</p>
-          </div>
-
-          <div className="flex items-center gap-6 border-b border-[#e8dfd3] p-4 px-6">
-            <button
-              type="button"
-              onClick={handleLike}
-              className="flex items-center gap-2 font-medium"
-            >
-              <FaHeart className={isLiked ? "text-red-500" : "text-[#5a4636]"} />
-              {likes}
-            </button>
-
-            <div className="flex items-center gap-2 font-medium">
-              <FaComment className="text-[#5a4636]" />
-              {comments.length}
+        {/* RIGHT: Sidebar */}
+        <div className="flex h-[55dvh] w-full flex-col border-l border-[#e8dfd3] md:h-full md:w-[450px]">
+          
+          <div className="border-b border-[#e8dfd3] p-4 bg-[#fbf9f7]/50">
+            <h2 className="text-xl font-black text-[#3e2c23]">{art.title}</h2>
+            <p className="mt-1 text-sm text-[#5a4636] line-clamp-2">{art.description}</p>
+            <div className="mt-4 flex gap-6 text-sm font-bold text-[#3e2c23]">
+              <div className="flex items-center gap-2"><FaHeart className={isLiked ? "text-red-500" : ""} /> {likes}</div>
+              <div className="flex items-center gap-2">
+                <FaComment /> {isLoadingComments ? "..." : comments.length}
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 space-y-4 overflow-y-auto p-6">
-            {comments.length === 0 ? (
-              <p className="text-sm italic text-[#5a4636]">No comments yet. Be the first to chime in!</p>
-            ) : (
-              comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  {/* Avatar Link via ID */}
-                  <Link 
-                    href={`/profile/${comment.user.id}`}
-                    className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border border-[#d6c3a3] transition-opacity hover:opacity-80"
-                  >
-                    <Image
-                      src={comment.user.avatarUrl}
-                      alt={comment.user.username}
-                      fill
-                      className="object-cover"
-                      sizes="32px"
-                    />
-                  </Link>
-                  <div className="flex flex-col">
-                    {/* Username Link via ID with hover underline */}
-                    <Link 
-                      href={`/profile/${comment.user.id}`}
-                      className="w-fit text-xs font-bold uppercase tracking-wider text-[#3e2c23] transition-colors hover:text-black hover:underline"
+          {/* MORE FROM ARTIST */}
+          {moreArtworks.length > 0 && (
+            <div className="border-b border-[#e8dfd3] bg-[#fbf9f7]">
+              <div className="hidden p-4 md:block">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#9a8878] mb-3">More from Artist</p>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                  {moreArtworks.map((item) => (
+                    <button 
+                      key={String(item.id)} 
+                      onClick={() => onChangeArt(item)} 
+                      className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${art.id === item.id ? 'border-[#3e2c23] scale-95' : 'border-transparent hover:scale-105'}`}
                     >
-                      {comment.user.username}
-                    </Link>
-                    <p className="text-sm text-[#5a4636]">{comment.content}</p>
-                  </div>
+                      <Image src={item.image} alt="" fill className="object-cover" sizes="56px" />
+                    </button>
+                  ))}
                 </div>
+              </div>
+              <div className="md:hidden">
+                <Disclosure>
+                  {({ open }) => (
+                    <>
+                      <Disclosure.Button className="flex w-full items-center justify-between px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#9a8878]">
+                        <span>More from Artist</span>
+                        <FaChevronDown className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+                      </Disclosure.Button>
+                      <Disclosure.Panel className="px-4 pb-4">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                          {moreArtworks.map((item) => (
+                            <button 
+                              key={String(item.id)} 
+                              onClick={() => onChangeArt(item)} 
+                              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 ${art.id === item.id ? 'border-[#3e2c23]' : 'border-transparent'}`}
+                            >
+                              <Image src={item.image} alt="" fill className="object-cover" sizes="56px" />
+                            </button>
+                          ))}
+                        </div>
+                      </Disclosure.Panel>
+                    </>
+                  )}
+                </Disclosure>
+              </div>
+            </div>
+          )}
+
+          {/* COMMENTS AREA */}
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white">
+            {nestedCommentsTree.length > 0 ? (
+              nestedCommentsTree.map((comment) => (
+                <CommentNode key={String(comment.id)} comment={comment} onReply={setReplyingTo} />
               ))
+            ) : (
+              <p className="py-10 text-center text-sm text-[#9a8878]">
+                {isLoadingComments ? "Loading thread..." : "No comments yet."}
+              </p>
             )}
           </div>
 
-          <div className="border-t border-[#e8dfd3] bg-[#f5efe6] p-4">
+          {/* INPUT FORM */}
+          <div className="mt-auto border-t border-[#e8dfd3] bg-white p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+            {replyingTo && (
+              <div className="mb-2 flex items-center justify-between bg-[#f7f3ee] px-3 py-1.5 rounded-lg text-[11px]">
+                <span className="text-[#5a4636]">Replying to <span className="font-bold text-[#3e2c23]">@{replyingTo.username}</span></span>
+                <button onClick={() => setReplyingTo(null)} className="font-bold text-[#8a7a6d] hover:text-black">✕</button>
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 value={newComment}
-                onChange={(event) => setNewComment(event.target.value)}
-                placeholder="Write a comment..."
-                className="flex-1 rounded-lg border border-[#d6c3a3] bg-white px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#3e2c23]"
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
+                placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
+                className="flex-1 rounded-full border border-[#d9cfc3] bg-[#fcfaf8] px-4 py-2 text-sm outline-none focus:border-[#5a4636]"
               />
-              <button
-                type="button"
-                onClick={handleComment}
-                className="rounded-lg bg-[#3e2c23] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#2a1d17]"
+              <button 
+                onClick={handleCommentSubmit}
+                disabled={!newComment.trim()}
+                className="rounded-full bg-[#3e2c23] px-5 py-2 text-sm font-bold text-white disabled:opacity-30"
               >
                 Post
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* More Artworks Sidebar */}
-        <div className="w-full border-l border-[#e8dfd3] p-6 md:h-full md:w-[10%] md:overflow-y-auto">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#3e2c23]">
-            More
-          </p>
-
-          <div className="flex flex-row gap-3 overflow-x-auto pb-4 md:flex-col md:overflow-x-visible md:pb-0">
-            {moreArtworks.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  onChangeArt(item);
-                  document.querySelector('.relative.flex.h-full')?.scrollTo(0,0);
-                }}
-                className="relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-lg border border-[#e8dfd3] md:w-full"
-              >
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  className="object-cover transition-transform duration-300 hover:scale-110"
-                  sizes="(max-width: 768px) 80px, 10vw"
-                />
-              </button>
-            ))}
           </div>
         </div>
       </Dialog.Panel>

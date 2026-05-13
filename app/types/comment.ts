@@ -1,17 +1,18 @@
-export type CommentUser = {
+export interface User {
   id: string;
   username: string;
   avatarUrl: string;
-};
+}
 
-export type CommentItem = {
+export interface CommentItem {
   id: string;
   content: string;
   createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    avatarUrl: string;
-  };
-  parentId?: string | null; // Add the '?' here to make it optional
-};
+  parentId?: string | null; 
+  user: User;
+}
+
+export interface NestedComment extends CommentItem {
+  replies: NestedComment[];
+  parentUsername?: string;
+}

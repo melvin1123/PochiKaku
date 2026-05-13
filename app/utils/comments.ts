@@ -1,41 +1,33 @@
-import { CommentItem } from "../types/comment";
+import { CommentItem } from "@/app/types/comment";
 
+// Ensure 'export' is here!
 export interface NestedComment extends CommentItem {
   replies: NestedComment[];
-  // NEW: Store the parent's username directly on the child for the Flat UI mention
   parentUsername?: string;
 }
 
-export function nestComments(flatComments: CommentItem[]): NestedComment[] {
+export function nestComments(allComments: CommentItem[]): NestedComment[] {
   const map: Record<string, NestedComment> = {};
   const roots: NestedComment[] = [];
 
-  // 1. First pass: Index everything into the map
-  flatComments.forEach((comment) => {
-    map[comment.id] = { ...comment, replies: [] };
+  allComments.forEach((comment) => {
+    map[String(comment.id)] = { ...comment, replies: [] };
   });
 
-  // 2. Second pass: Link children to parents
-  flatComments.forEach((comment) => {
-    const nestedComment = map[comment.id];
-    if (!nestedComment) return;
+  allComments.forEach((comment) => {
+    const nested = map[String(comment.id)];
+    if (!nested) return;
 
-    const pId = comment.parentId;
-
-    if (!pId) {
-      // TRUE ROOT: No parentId exists
-      roots.push(nestedComment);
-    } else if (map[pId]) {
-      // VALID REPLY: Parent exists in the current map
-      
-      // NEW: Attach the parent's username to this comment for the "replying to @..." tag
-      // We look it up in the map we just built
-      nestedComment.parentUsername = map[pId].user?.username;
-
-      map[pId].replies.push(nestedComment);
+    if (comment.parentId) {
+      const parent = map[String(comment.parentId)];
+      if (parent) {
+        nested.parentUsername = parent.user.username;
+        parent.replies.push(nested);
+      } else {
+        roots.push(nested);
+      }
     } else {
-      // ORPHAN: Prevent replies appearing at top-level if parent is missing
-      console.warn(`Orphaned comment ${comment.id} hidden: parent ${pId} not found.`);
+      roots.push(nested);
     }
   });
 
