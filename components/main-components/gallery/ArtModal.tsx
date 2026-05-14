@@ -179,20 +179,23 @@ export default function ArtModal({ art, onClose, onChangeArt, moreArtworks = [] 
 
   return (
     <Dialog open={!!art} onClose={onClose} className="fixed inset-0 z-50 flex bg-black/80 backdrop-blur-md">
-      <Dialog.Panel className="relative flex h-full w-full flex-col bg-white md:flex-row md:overflow-hidden">
+      {/* Changed: Added `overflow-y-auto md:overflow-hidden` to allow full page scrolling on mobile */}
+      <Dialog.Panel className="relative flex h-full w-full flex-col bg-white overflow-y-auto md:flex-row md:overflow-hidden">
         
-        {/* Close Button */}
-        <button onClick={onClose} className="absolute left-4 top-4 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition">
+        {/* Changed: Used `fixed` instead of `absolute` so the button doesn't scroll out of view on mobile */}
+        <button onClick={onClose} className="fixed left-4 top-4 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition">
           <FaTimes size={20} />
         </button>
 
         {/* LEFT: Art Image */}
-        <div className="relative flex h-[45dvh] w-full items-center justify-center bg-black md:h-full md:flex-1">
+        {/* Changed: Converted `h-[45dvh]` to `min-h-[45dvh] shrink-0` so it doesn't compress and can scroll up */}
+        <div className="relative flex h-[45dvh] min-h-[45dvh] w-full shrink-0 items-center justify-center bg-black md:h-full md:flex-1">
           <Image src={art.image} alt={art.title} fill className="object-contain" priority sizes="(max-width: 768px) 100vw, 60vw" />
         </div>
 
         {/* RIGHT: Sidebar */}
-        <div className="flex h-[55dvh] w-full flex-col border-l border-[#e8dfd3] md:h-full md:w-[450px]">
+        {/* Changed: Converted `h-[55dvh]` to `min-h-[55dvh]` so it naturally expands with comment height on mobile */}
+        <div className="flex min-h-[55dvh] w-full flex-col border-l border-[#e8dfd3] md:h-full md:w-[450px]">
           
           <div className="border-b border-[#e8dfd3] p-4 bg-[#fbf9f7]/50">
             <h2 className="text-xl font-black text-[#3e2c23]">{art.title}</h2>
@@ -251,7 +254,8 @@ export default function ArtModal({ art, onClose, onChangeArt, moreArtworks = [] 
           )}
 
           {/* COMMENTS AREA */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white">
+          {/* Changed: Removed mobile constraints, letting the whole page scroll. Kept internal scroll for desktop (`md:flex-1 md:overflow-y-auto`) */}
+          <div className="p-4 bg-white custom-scrollbar md:flex-1 md:overflow-y-auto">
             {nestedCommentsTree.length > 0 ? (
               nestedCommentsTree.map((comment) => (
                 <CommentNode key={String(comment.id)} comment={comment} onReply={setReplyingTo} />
@@ -264,7 +268,8 @@ export default function ArtModal({ art, onClose, onChangeArt, moreArtworks = [] 
           </div>
 
           {/* INPUT FORM */}
-          <div className="mt-auto border-t border-[#e8dfd3] bg-white p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+          {/* Changed: Added `sticky bottom-0 z-10 md:static` so it floats at the bottom of the screen on mobile, but behaves normally on desktop */}
+          <div className="sticky bottom-0 z-10 mt-auto border-t border-[#e8dfd3] bg-white p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] md:static">
             {replyingTo && (
               <div className="mb-2 flex items-center justify-between bg-[#f7f3ee] px-3 py-1.5 rounded-lg text-[11px]">
                 <span className="text-[#5a4636]">Replying to <span className="font-bold text-[#3e2c23]">@{replyingTo.username}</span></span>

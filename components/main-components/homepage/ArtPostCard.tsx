@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { FaHeart, FaComment, FaEllipsisH, FaReply } from "react-icons/fa";
+import { FaHeart, FaTimes, FaComment, FaEllipsisH, FaReply } from "react-icons/fa";
 import { useArtPostCard } from "@/app/hooks/homepage/useArtPostCard";
 import type { Post } from "@/app/types/post";
 
@@ -298,16 +298,16 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
 
       {/* 2. Full Post Modal */}
       {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 backdrop-blur-md sm:p-4" onClick={closeModal}>
-          <div className="relative flex max-h-[95vh] w-full max-w-7xl flex-col overflow-y-auto rounded-3xl bg-white shadow-2xl lg:h-[90vh] lg:flex-row lg:overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md" onClick={closeModal}>
+          <div className="relative flex h-full w-full flex-col overflow-hidden bg-white lg:flex-row" onClick={(e) => e.stopPropagation()}>
             
             {/* Close Button */}
-            <button type="button" onClick={closeModal} className="absolute left-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-xl text-white transition hover:bg-black/80">
-              ×
+            <button onClick={closeModal} className="absolute left-4 top-4 z-[60] flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60">
+                <FaTimes size={20} />
             </button>
 
             {/* A. MOBILE IMAGE */}
-            <div className="relative flex min-h-[300px] w-full items-center justify-center bg-black lg:hidden">
+            <div className="relative flex min-h-[250px] max-h-[40vh] w-full shrink-0 items-center justify-center bg-black lg:hidden">
               <Image src={post.image} alt={post.title} width={1800} height={1800} className="h-full w-full object-contain" priority />
             </div>
 
@@ -317,7 +317,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
             </div>
 
             {/* C. SIDEBAR (Comments & Details) */}
-            <div className="flex h-full w-full flex-col border-l border-[#e8dfd3] lg:w-[450px]">
+            <div className="flex flex-1 w-full flex-col overflow-hidden border-l border-[#e8dfd3] lg:w-[450px] lg:flex-none">
               {/* Profile Header */}
               <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[#e8dfd3] bg-white/90 p-4 backdrop-blur-md">
                 <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-[#e8dfd3]">
@@ -330,7 +330,7 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
               </div>
 
               {/* Scrolling Content Area */}
-              <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-4 py-6 pb-[100px] custom-scrollbar lg:pb-6">
                 <h3 className="text-xl font-black tracking-tight text-[#3e2c23]">{post.title}</h3>
                 {post.description && <p className="mt-3 text-sm leading-relaxed text-[#5a4636]">{post.description}</p>}
 
@@ -363,6 +363,6 @@ export default function ArtPostCard({ post, currentUserId }: ArtPostCardProps) {
           </div>
         </div>
       )}
-    </>
+    </> 
   );
 }
