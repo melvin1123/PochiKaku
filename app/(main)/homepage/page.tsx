@@ -65,7 +65,7 @@ export default function HomePage() {
       <section className="px-4 md:px-0">
         <div className="relative h-60 overflow-hidden rounded-xl md:h-[300px] lg:h-[340px] md:rounded-none">
           <Image
-            src="https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776931412/download_2_wbufsc.jpg"
+            src="https://res.cloudinary.com/dh8rpbwxq/image/upload/v1778747224/download_2_gpwpej.jpg"
             alt="Homepage poster"
             fill
             className="object-cover object-top"

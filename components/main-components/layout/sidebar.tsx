@@ -42,9 +42,37 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<SidebarEvent[]>([]);
+  const [showTopbar, setShowTopbar] = useState<boolean>(true);
 
   useEffect(() => {
     fetchSidebarData();
+
+    // Scroll logic for mobile topbar
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          if (currentScrollY < lastScrollY) {
+            // Scrolling up
+            setShowTopbar(true);
+          } else if (currentScrollY > 60 && currentScrollY > lastScrollY) {
+            // Scrolling down and past threshold
+            setShowTopbar(false);
+          }
+
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const fetchSidebarData = async (): Promise<void> => {
@@ -83,8 +111,21 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="flex items-center justify-between border-b border-[#e8dfd3] bg-[#f7f4f0] px-4 py-3 lg:hidden">
-        <h1 className="text-lg font-bold text-[#3e2c23]">PochiKaku</h1>
+      <div
+        className={`sticky top-0 z-40 flex items-center justify-between border-b border-[#e8dfd3] bg-[#f7f4f0] px-4 py-3 lg:hidden transition-transform duration-300 ${
+          showTopbar ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <Image
+            src="https://res.cloudinary.com/dh8rpbwxq/image/upload/v1778747090/pochi_yb8yaz.png"
+            alt="PochiKaku Logo"
+            width={28}
+            height={28}
+            className="object-contain"
+          />
+          <h1 className="text-lg font-bold text-[#3e2c23]">PochiKaku</h1>
+        </div>
 
         <button
           onClick={() => setIsOpen(true)}
@@ -113,7 +154,16 @@ export default function Sidebar() {
         <div className="relative z-10 flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4">
-            <h1 className="text-xl font-bold text-[#3e2c23]">PochiKaku</h1>
+            <div className="flex items-center gap-2">
+              <Image
+                src="https://res.cloudinary.com/dh8rpbwxq/image/upload/v1778747090/pochi_yb8yaz.png"
+                alt="PochiKaku Logo"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
+              <h1 className="text-xl font-bold text-[#3e2c23]">PochiKaku</h1>
+            </div>
 
             <button
               className="rounded-lg p-2 text-[#3e2c23] transition hover:bg-[#ece4d9] lg:hidden"
@@ -131,7 +181,10 @@ export default function Sidebar() {
               className="relative h-10 w-10 flex-shrink-0 transition-opacity hover:opacity-75"
             >
               <Image
-                src={user?.avatarUrl || "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"}
+                src={
+                  user?.avatarUrl ||
+                  "https://res.cloudinary.com/dh8rpbwxq/image/upload/v1776317747/avatar_jtbppo.jpg"
+                }
                 alt="avatar"
                 fill
                 className="rounded-full object-cover"
