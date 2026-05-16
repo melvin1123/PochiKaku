@@ -14,6 +14,9 @@ export default function GalleryPage() {
   const [visibleArtworkCount, setVisibleArtworkCount] = useState<number>(INITIAL_ARTWORK_LIMIT);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   
+  // State to handle the random pop-up GIF
+  const [gifConfig, setGifConfig] = useState({ visible: false, top: "50%", left: "50%" });
+  
   // Use a ref to persist the audio object across renders
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -40,6 +43,38 @@ export default function GalleryPage() {
       }
     };
   }, []);
+
+  // Effect to handle random pop-up logic while music is playing
+  useEffect(() => {
+    if (!isPlaying) {
+      setGifConfig((prev) => ({ ...prev, visible: false }));
+      return;
+    }
+
+    let timeoutId: NodeJS.Timeout;
+
+    const cycleRandomGif = () => {
+      // Generate random positions (keeping it between 10% and 70% to avoid rendering off-screen)
+      const randomTop = Math.floor(Math.random() * 60) + 10;
+      const randomLeft = Math.floor(Math.random() * 60) + 10;
+
+      setGifConfig({ visible: true, top: `${randomTop}%`, left: `${randomLeft}%` });
+
+      // Hide the GIF after 3 seconds
+      timeoutId = setTimeout(() => {
+        setGifConfig((prev) => ({ ...prev, visible: false }));
+        
+        // Wait 1.5 seconds before showing it again in a new spot
+        timeoutId = setTimeout(cycleRandomGif, 1500);
+      }, 3000);
+    };
+
+    // Start the pop-up cycle
+    cycleRandomGif();
+
+    // Cleanup timeouts if music stops or component unmounts
+    return () => clearTimeout(timeoutId);
+  }, [isPlaying]);
 
   // Toggle play/pause state
   const toggleMusic = (): void => {
@@ -72,6 +107,20 @@ export default function GalleryPage() {
 
   return (
     <MainLayout>
+      {/* Random Pop-up GIF Container */}
+      {isPlaying && gifConfig.visible && (
+        <div
+          className="pointer-events-none fixed z-50 transition-opacity duration-300"
+          style={{ top: gifConfig.top, left: gifConfig.left }}
+        >
+          <img
+            src="/dog-twerk.gif"
+            alt="Dancing Dog"
+            className="h-[295px] w-[345px] rounded-xl object-cover shadow-2xl drop-shadow-xl"
+          />
+        </div>
+      )}
+
       {/* Header Section: Stacked on mobile, side-by-side on md+ */}
       <div className="mx-4 mb-4 mt-6 flex flex-col gap-4 md:mx-8 md:flex-row md:items-end md:justify-between">
         <div>
@@ -99,7 +148,7 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      <section className="px-2 md:px-8 flex-1">
+      <section className="flex-1 px-2 md:px-8">
         {isLoading ? (
           <GallerySkeleton />
         ) : error ? (
@@ -108,7 +157,6 @@ export default function GalleryPage() {
           </div>
         ) : (
           <>
-            {/* Added the isPlaying state here to trigger the card dancing syncing */}
             <GalleryGrid 
               items={visibleItems} 
               onSelect={setSelectedArt} 
