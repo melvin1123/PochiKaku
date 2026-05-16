@@ -14,8 +14,16 @@ export default function GalleryPage() {
   const [visibleArtworkCount, setVisibleArtworkCount] = useState<number>(INITIAL_ARTWORK_LIMIT);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   
-  // State to handle the random pop-up GIF
-  const [gifConfig, setGifConfig] = useState({ visible: false, top: "50%", left: "50%" });
+  // State to track visibility and random positioning
+  const [gifConfig, setGifConfig] = useState({
+    visible: false,
+    top: "50%",
+    left: "50%",
+    currentGif: "/dog-twerk.gif",
+  });
+  
+  // Mechanical switch to guarantee perfect alternation without state dependency lag
+  const isDogDanceTurn = useRef<boolean>(false);
   
   // Use a ref to persist the audio object across renders
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,7 +52,7 @@ export default function GalleryPage() {
     };
   }, []);
 
-  // Effect to handle random pop-up logic while music is playing
+  // Effect to handle alternating random pop-ups (1.5s display, 1s delay)
   useEffect(() => {
     if (!isPlaying) {
       setGifConfig((prev) => ({ ...prev, visible: false }));
@@ -54,25 +62,36 @@ export default function GalleryPage() {
     let timeoutId: NodeJS.Timeout;
 
     const cycleRandomGif = () => {
-      // Generate random positions (keeping it between 10% and 70% to avoid rendering off-screen)
+      // Determine the next GIF using the mutable ref toggle
+      const nextGif = isDogDanceTurn.current ? "/dog-dance.gif" : "/dog-twerk.gif";
+      
+      // Flip the switch for the next iteration
+      isDogDanceTurn.current = !isDogDanceTurn.current;
+      
+      // Generate random viewport coordinates (safely constrained between 10% and 70%)
       const randomTop = Math.floor(Math.random() * 60) + 10;
       const randomLeft = Math.floor(Math.random() * 60) + 10;
 
-      setGifConfig({ visible: true, top: `${randomTop}%`, left: `${randomLeft}%` });
+      setGifConfig({
+        visible: true,
+        top: `${randomTop}%`,
+        left: `${randomLeft}%`,
+        currentGif: nextGif,
+      });
 
-      // Hide the GIF after 3 seconds
+      // Hide the GIF after exactly 1.5 seconds (Display Time)
       timeoutId = setTimeout(() => {
         setGifConfig((prev) => ({ ...prev, visible: false }));
         
-        // Wait 1.5 seconds before showing it again in a new spot
-        timeoutId = setTimeout(cycleRandomGif, 1500);
-      }, 3000);
+        // Wait for exactly 1 second (Delay Time) before spawning the next alternating GIF
+        timeoutId = setTimeout(cycleRandomGif, 1000);
+      }, 1500);
     };
 
-    // Start the pop-up cycle
+    // Kick off the loop
     cycleRandomGif();
 
-    // Cleanup timeouts if music stops or component unmounts
+    // Clean up timers on pause or unmount
     return () => clearTimeout(timeoutId);
   }, [isPlaying]);
 
@@ -107,16 +126,16 @@ export default function GalleryPage() {
 
   return (
     <MainLayout>
-      {/* Random Pop-up GIF Container */}
+      {/* Alternating Random Pop-up GIF Container */}
       {isPlaying && gifConfig.visible && (
         <div
-          className="pointer-events-none fixed z-50 transition-opacity duration-300"
+          className="pointer-events-none fixed z-50 transition-opacity duration-200"
           style={{ top: gifConfig.top, left: gifConfig.left }}
         >
           <img
-            src="/dog-twerk.gif"
+            src={gifConfig.currentGif}
             alt="Dancing Dog"
-            className="h-[295px] w-[345px] rounded-xl object-cover shadow-2xl drop-shadow-xl"
+            className="h-[170px] w-[200px] md:h-[295px] md:w-[345px] rounded-xl object-cover shadow-2xl drop-shadow-xl"
           />
         </div>
       )}
