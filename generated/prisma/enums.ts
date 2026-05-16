@@ -15,3 +15,13 @@ export const PostType = {
 } as const
 
 export type PostType = (typeof PostType)[keyof typeof PostType]
+
+
+export const NotificationType = {
+  NEW_POST: 'NEW_POST',
+  POST_REPLY: 'POST_REPLY',
+  COMMENT_REPLY: 'COMMENT_REPLY',
+  FOLLOW: 'FOLLOW'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

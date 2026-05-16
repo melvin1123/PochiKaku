@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import MainLayout from "@/components/main-components/layout/MainLayout";
 import SearchBar from "@/components/main-components/gallery/SearchBar";
 import GalleryGrid from "@/components/main-components/gallery/GalleryGrid";
@@ -12,6 +12,10 @@ const ARTWORK_INCREMENT = 50;
 
 export default function GalleryPage() {
   const [visibleArtworkCount, setVisibleArtworkCount] = useState<number>(INITIAL_ARTWORK_LIMIT);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  
+  // Use a ref to persist the audio object across renders
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const {
     filteredItems,
@@ -23,6 +27,33 @@ export default function GalleryPage() {
     setSearch,
     setSelectedArt,
   } = useGallery();
+
+  // Initialize audio on mount
+  useEffect(() => {
+    audioRef.current = new Audio("/disco.mp3");
+    audioRef.current.loop = true;
+
+    // Clean up and pause music if the user navigates away
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  // Toggle play/pause state
+  const toggleMusic = (): void => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((error) => {
+        console.error("Playback failed, browser may be blocking autoplay:", error);
+      });
+    }
+    setIsPlaying(!isPlaying);
+  };
 
   const visibleItems = useMemo(() => {
     return filteredItems.slice(0, visibleArtworkCount);
@@ -44,7 +75,19 @@ export default function GalleryPage() {
       {/* Header Section: Stacked on mobile, side-by-side on md+ */}
       <div className="mx-4 mb-4 mt-6 flex flex-col gap-4 md:mx-8 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold md:text-3xl">Gallery</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold md:text-3xl">Gallery</h2>
+            
+            {/* Audio Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleMusic}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3e2c23] text-sm text-[#f5efe6] transition hover:bg-[#5a4636]"
+              title={isPlaying ? "Mute Music" : "Play Music"}
+            >
+              {isPlaying ? "⏸️" : "🎵"}
+            </button>
+          </div>
           <p className="mt-1 text-sm text-[#5a4636] md:text-base">
             Explore the latest artworks from the community.
           </p>
@@ -65,7 +108,12 @@ export default function GalleryPage() {
           </div>
         ) : (
           <>
-            <GalleryGrid items={visibleItems} onSelect={setSelectedArt} />
+            {/* Added the isPlaying state here to trigger the card dancing syncing */}
+            <GalleryGrid 
+              items={visibleItems} 
+              onSelect={setSelectedArt} 
+              isPlaying={isPlaying} 
+            />
 
             {hasMoreArtworks && (
               <div className="mt-8 flex justify-center pb-10">
@@ -96,7 +144,6 @@ function GallerySkeleton() {
   const skeletonHeights = ["h-32", "h-40", "h-36", "h-48", "h-32", "h-40"];
 
   return (
-    /* Changed columns-1 to columns-3 for mobile view */
     <div className="columns-3 gap-2 sm:gap-6 lg:columns-4 xl:columns-5">
       {skeletonHeights.map((height, index) => (
         <div
@@ -107,7 +154,6 @@ function GallerySkeleton() {
             className={`${height} animate-pulse bg-gradient-to-r from-[#f2ebe2] via-[#e8ded2] to-[#f2ebe2] bg-[length:200%_100%]`}
           />
 
-          {/* Hidden labels on mobile to keep 3 columns clean, visible on md+ */}
           <div className="hidden space-y-2 bg-[#fbf8f4] p-3 md:block">
             <div className="h-3.5 w-3/4 animate-pulse rounded bg-[#e7dcd0]" />
           </div>

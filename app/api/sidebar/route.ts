@@ -21,6 +21,27 @@ type SidebarEventResponse = {
   dateLabel: string;
 };
 
+// Types for the newly integrated notification queries
+type DBNotification = {
+  id: string;
+  type: string;
+  postId: string | null;
+  createdAt: Date;
+  actor: {
+    username: string;
+    avatarUrl: string | null;
+  };
+};
+
+type FormattedNotification = {
+  id: string;
+  type: string;
+  actorName: string;
+  actorAvatar: string | undefined;
+  createdAt: string;
+  postId: string | undefined;
+};
+
 export async function GET() {
   try {
     const user = (await getCurrentUserFromToken().catch(
@@ -29,6 +50,7 @@ export async function GET() {
 
     const now = new Date();
 
+    // 1. Fetch ongoing events (Your original logic)
     const events = (await prisma.event.findMany({
       where: {
         startDate: {
@@ -58,6 +80,46 @@ export async function GET() {
       }),
     );
 
+    // Initialize notification placeholders if no user token exists
+    let unreadCount = 0;
+    let formattedNotifications: FormattedNotification[] = [];
+
+    // 2. Add structural notification checks if a user session is active
+    if (user?.id) {
+      // Fetch unread count matching user destination
+      unreadCount = await prisma.notification.count({
+        where: {
+          recipientId: user.id,
+          isRead: false, // Assumes a 'read' boolean flag exists in your notification model
+        },
+      });
+
+      // Fetch up to 10 recent notifications
+      const dbNotifications = (await prisma.notification.findMany({
+        where: { recipientId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          actor: {
+            select: {
+              username: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      })) as unknown as DBNotification[];
+
+      // Flatten structure to ensure strict runtime compatibility with Pusher payloads
+      formattedNotifications = dbNotifications.map((notif) => ({
+        id: notif.id,
+        type: notif.type,
+        actorName: notif.actor.username,
+        actorAvatar: notif.actor.avatarUrl || undefined,
+        createdAt: notif.createdAt.toISOString(),
+        postId: notif.postId || undefined,
+      }));
+    }
+
     return NextResponse.json({
       user: user
         ? {
@@ -67,6 +129,8 @@ export async function GET() {
           }
         : null,
       events: formattedEvents,
+      unreadCount,
+      notifications: formattedNotifications,
     });
   } catch (error: unknown) {
     console.error("GET /api/sidebar error:", error);
@@ -74,6 +138,8 @@ export async function GET() {
     return NextResponse.json({
       user: null,
       events: [],
+      unreadCount: 0,
+      notifications: [],
     });
   }
 }

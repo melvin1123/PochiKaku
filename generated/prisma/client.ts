@@ -96,3 +96,8 @@ export type EventReferenceImage = Prisma.EventReferenceImageModel
  * 
  */
 export type EventSubmission = Prisma.EventSubmissionModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel

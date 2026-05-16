@@ -61,7 +61,8 @@ export const ModelName = {
   Event: 'Event',
   EventParticipant: 'EventParticipant',
   EventReferenceImage: 'EventReferenceImage',
-  EventSubmission: 'EventSubmission'
+  EventSubmission: 'EventSubmission',
+  Notification: 'Notification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -201,6 +202,20 @@ export const EventSubmissionScalarFieldEnum = {
 } as const
 
 export type EventSubmissionScalarFieldEnum = (typeof EventSubmissionScalarFieldEnum)[keyof typeof EventSubmissionScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  recipientId: 'recipientId',
+  actorId: 'actorId',
+  type: 'type',
+  isRead: 'isRead',
+  createdAt: 'createdAt',
+  postId: 'postId',
+  commentId: 'commentId'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
 export const SortOrder = {

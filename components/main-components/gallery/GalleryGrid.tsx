@@ -7,6 +7,7 @@ import type { GalleryItem } from "@/app/types/gallery";
 type GalleryGridProps = {
   items?: GalleryItem[];
   onSelect?: (art: GalleryItem) => void;
+  isPlaying?: boolean; // Added prop type
 };
 
 // Adjusted for 3 columns on small screens
@@ -20,6 +21,7 @@ const BREAKPOINT_COLUMNS = {
 export default function GalleryGrid({
   items = [],
   onSelect,
+  isPlaying = true, // Destructured with a default value
 }: GalleryGridProps) {
   if (items.length === 0) {
     return (
@@ -43,6 +45,7 @@ export default function GalleryGrid({
           artist={art.artist}
           img={art.image}
           onClick={onSelect ? () => onSelect(art) : undefined}
+          isPlaying={isPlaying} // Passed down to the ArtCard
         />
       ))}
     </Masonry>

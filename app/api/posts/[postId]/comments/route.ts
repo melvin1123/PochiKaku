@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromToken } from "@/lib/auth/auth";
+import { createNotification } from "@/lib/notifications"; 
 import type { CommentItem } from "@/app/types/comment";
+import { NotificationType } from "@/generated/prisma/client";
 
 type Params = {
-  params: Promise<{
+  params: Promise<{ 
     postId: string;
   }>;
 };
@@ -51,6 +53,7 @@ function isRequestBody(value: unknown): value is RequestBody {
   return typeof value === "object" && value !== null;
 }
 
+// --- GET: Fetch all comments for a post ---
 export async function GET(_: Request, { params }: Params) {
   try {
     const { postId } = await params;
@@ -70,11 +73,8 @@ export async function GET(_: Request, { params }: Params) {
             avatarUrl: true,
           },
         },
-        // IMPORTANT: Ensure parentId is part of the returned object
-        // If your prisma client is generated correctly, 
-        // it should be included by default, but let's be explicit if needed.
       },
-    })) as unknown as CommentWithUser[]; // Use the unknown bridge here too
+    })) as unknown as CommentWithUser[];
 
     const formatted: CommentItem[] = comments.map(
       (comment: CommentWithUser) => formatComment(comment),
@@ -87,6 +87,7 @@ export async function GET(_: Request, { params }: Params) {
   }
 }
 
+// --- POST: Create a comment and trigger notification ---
 export async function POST(req: Request, { params }: Params) {
   try {
     const currentUser = (await getCurrentUserFromToken()) as CurrentUser | null;
@@ -111,16 +112,17 @@ export async function POST(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
     }
 
+    // 1. Get the post owner info
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Fixed: Cast through 'unknown' to bypass overlap check and used correct parentId variable
+    // 2. Create the comment in the DB
     const comment = (await prisma.comment.create({
       data: {
         content,
@@ -138,6 +140,40 @@ export async function POST(req: Request, { params }: Params) {
         },
       },
     })) as unknown as CommentWithUser;
+
+    // 3. 🔔 NOTIFICATION LOGIC
+    try {
+      if (!parentId) {
+        // SCENARIO A: Top-level comment -> Type: POST_REPLY
+        if (post.userId !== currentUser.id) {
+          await createNotification({
+            recipientId: post.userId,
+            actorId: currentUser.id,
+            type: "POST_REPLY" as NotificationType, 
+            postId: postId,
+            commentId: comment.id,
+          });
+        }
+      } else {
+        // SCENARIO B: Reply to another comment -> Type: COMMENT_REPLY
+        const parentComment = await prisma.comment.findUnique({
+          where: { id: parentId },
+          select: { userId: true },
+        });
+
+        if (parentComment && parentComment.userId !== currentUser.id) {
+          await createNotification({
+            recipientId: parentComment.userId,
+            actorId: currentUser.id,
+            type: "COMMENT_REPLY" as NotificationType, 
+            postId: postId,
+            commentId: comment.id,
+          });
+        }
+      }
+    } catch (notifError) {
+      console.error("Notification failed:", notifError);
+    }
 
     const commentCount = await prisma.comment.count({
       where: { postId },
