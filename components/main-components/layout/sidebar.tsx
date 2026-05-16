@@ -117,25 +117,40 @@ export default function Sidebar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // SAFE PUSHER INITIALIZATION
   useEffect(() => {
     if (!user?.id) return;
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    });
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
-    const channel = pusher.subscribe(`user-${user.id}`);
+    // Safety guard to prevent crashing if environment variables aren't baked in yet
+    if (!pusherKey || !pusherCluster) {
+      console.warn("Pusher environment variables are missing. Real-time notifications are currently disabled.");
+      return;
+    }
 
-    channel.bind("new-notification", (data: Notification) => {
-      setUnreadCount((prev) => prev + 1);
-      setNotifications((prev) => [data, ...prev].slice(0, 10));
-    });
+    try {
+      const pusher = new Pusher(pusherKey, {
+        cluster: pusherCluster,
+      });
 
-    return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
-      pusher.disconnect();
-    };
+      const channel = pusher.subscribe(`user-${user.id}`);
+
+      channel.bind("new-notification", (data: Notification) => {
+        setUnreadCount((prev) => prev + 1);
+        setNotifications((prev) => [data, ...prev].slice(0, 10));
+      });
+
+      return () => {
+        channel.unbind_all();
+        channel.unsubscribe();
+        pusher.disconnect();
+      };
+    } catch (error) {
+      console.error("Failed to initialize Pusher instance:", error);
+      return; // Added return here to satisfy TypeScript's noImplicitReturns
+    }
   }, [user?.id]);
 
   const fetchSidebarData = async (): Promise<void> => {
@@ -159,20 +174,16 @@ export default function Sidebar() {
     }
   };
 
-  // --- NEW: The updated toggle function ---
   const toggleNotifications = async () => {
     const opening = !isNotifOpen;
     setIsNotifOpen(opening);
 
-    // If we are opening the dropdown and there are unread notifications
     if (opening && unreadCount > 0) {
-      setUnreadCount(0); // Instantly clear the red dot for the user
+      setUnreadCount(0); // Instant UI update
 
       try {
-        // Ping your database to actually save that these were read
-        // Note: Make sure this endpoint matches your actual backend route!
         await fetch("/api/notifications/read", {
-          method: "POST", // or PATCH/PUT depending on your backend
+          method: "POST",
           credentials: "include",
         });
       } catch (error) {
